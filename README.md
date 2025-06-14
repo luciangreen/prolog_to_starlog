@@ -24,21 +24,6 @@ greet(Name, Greeting is ("Hello, " : Name) : "!").
 `convert_sl_to_pl((Head :- Body), (Head :- NewBody)).`
 `convert_pl_to_sl((Head :- Body), (Head :- NewBody)).`
 
-
-# Prolog to and from Starlog Converters
-
-* Starlog represents
-`append(C,A,D)` as `is(D,&(C,A))`
-`string_concat(C,A,D)` as `is(D,C:A)`
-`atom_concat(C,A,D)` as `is(D,…(C,A))`
-
-* Test using:
-`swipl prolog_to_starlog_cli.pl`
-
-* Convert from Starlog to Prolog and back:
-`convert_sl_to_pl((Head :- Body), (Head :- NewBody)).`
-`convert_pl_to_sl((Head :- Body), (Head :- NewBody)).`
-
 * Process all .pl files in current directory, convert Prolog syntax to Starlog and create *_starlog.pl output files:
 ```
 swipl -s prolog_to_starlog_cli.pl -g main -t halt
