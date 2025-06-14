@@ -1,0 +1,9 @@
+:-(greet(A,B),','(string_constant(C),','(string_concat(C,A,D),','(string_constant(E),string_concat(D,E,B))))).
+join_lists([],A,A).
+:-(join_lists([A|B],C,[A|D]),join_lists(B,C,D)).
+person(john).
+person(jane).
+person(bob).
+:-(likes(john,A),','(person(A),\+(=(A,john)))).
+likes(jane,bob).
+:-(format_greeting(A,B),','(string_constant(C),','(string_concat(C,A,D),','(string_constant(E),string_concat(D,E,B))))).
