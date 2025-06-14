@@ -1,9 +1,5 @@
-:-(greet(A,B),','(string_constant(C),','(string_concat(C,A,D),','(string_constant(E),string_concat(D,E,B))))).
-join_lists([],A,A).
-:-(join_lists([A|B],C,[A|D]),join_lists(B,C,D)).
-person(john).
-person(jane).
-person(bob).
-:-(likes(john,A),','(person(A),\+(=(A,john)))).
-likes(jane,bob).
-:-(format_greeting(A,B),','(string_constant(C),','(string_concat(C,A,D),','(string_constant(E),string_concat(D,E,B))))).
+:-(test_term_to_atom(A,B),term_to_atom(A,B)).
+:-(test_number_string(A,B),number_string(A,B)).
+:-(test_maplist(A,B),maplist(atom_chars,A,B)).
+:-(test_foldl(A,B),foldl(atom_concat,A,"",B)).
+:-(test_string_chars(A,B),string_chars(A,B)).

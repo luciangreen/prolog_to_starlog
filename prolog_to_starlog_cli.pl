@@ -1,298 +1,174 @@
-% test using
-% swipl prolog_to_starlog_cli.pl
-
-% convert_sl_to_pl((Head :- Body), (Head :- NewBody)).
-% convert_pl_to_sl((Head :- Body), (Head :- NewBody)).
-
-:- module(prolog_to_starlog_cli, [main/0]).
-
-:- use_module(library(readutil)).
+:- module(prolog_to_starlog_cli, [main/0, hidden_or_special/1]).
 
 % Define operators for Starlog syntax
 :- op(600, xfx, ':').
 :- op(500, xfx, '&').
-:- op(500, xfx, '^').
+:- op(500, xfx, '…').
 :- op(700, xfx, 'is').
 
-% Debug predicate with timestamp
-debug_msg(Format) :-
-    debug_msg(Format, []).
+main :-
+    format('2025-06-14 23:08:55: Starting Prolog to Starlog converter~n'),
+    format('2025-06-14 23:08:55: User: luciangreen~n'),
+    process_files,
+    !.  % Ensure deterministic execution
 
-debug_msg(Format, Args) :-
-    format('2025-06-14 07:18:45: ', []),
-    format(Format, Args),
-    nl,
-    flush_output.
+% Process all Prolog files in current directory
+process_files :-
+    working_directory(CWD, CWD),
+    format('2025-06-14 23:08:55: Working in directory: ~w~n', [CWD]),
+    directory_files(CWD, AllFiles),
+    exclude(hidden_or_special, AllFiles, Files),
+    include(is_source_file, Files, SourceFiles),
+    process_prolog_files(SourceFiles),
+    !.  % Ensure success
 
-% Helper predicates for file existence
-ensure_file(File) :-
-    (exists_file(File) ->
-        true
-    ;
-        open(File, write, Stream),
-        close(Stream)).
+% Filter out hidden and special files
+hidden_or_special(File) :-
+    atom_concat('.', _, File).
+hidden_or_special('..').
+hidden_or_special('.').
 
-% String constants
-string_constant("Hello, ").
-string_constant("!").
-string_constant("Greetings ").
-string_constant(", welcome!").
-string_constant(" (").
-string_constant(") since ").
-string_constant(")").
-string_constant("/").
+% Check if file is a source Prolog file
+is_source_file(File) :-
+    file_name_extension(_Base, 'pl', File),
+    \+ sub_atom(File, _, _, 0, '_starlog.pl'),
+    \+ sub_atom(File, _, _, 0, '_cli.pl').  % Skip CLI files
 
-% Write test file 1 with proper string handling
-write_test_file1 :-
-    debug_msg('Writing test file 1'),
-    ensure_file('test1.pl'),
+% Process Prolog files
+process_prolog_files([]).
+process_prolog_files([File|Files]) :-
+    format('2025-06-14 23:08:55: Processing file: ~w~n', [File]),
+    (catch(
+        process_single_file(File),
+        Error,
+        format('Error processing ~w: ~w~n', [File, Error])
+    ) ; true),  % Continue even if file fails
+    process_prolog_files(Files).
+
+% Process a single Prolog file
+process_single_file(File) :-
+    read_file_to_clauses(File, Clauses),
+    convert_clauses(Clauses, StarlogClauses),
+    file_name_extension(Base, _, File),
+    atom_concat(Base, '_starlog.pl', OutputFile),
+    write_clauses_to_file(OutputFile, StarlogClauses).
+
+% Read file contents into clauses
+read_file_to_clauses(File, Clauses) :-
     setup_call_cleanup(
-        open('test1.pl', write, Stream, [encoding(utf8)]),
-        write_test1_content(Stream),
+        open(File, read, Stream),
+        read_clauses(Stream, [], Clauses),
         close(Stream)
     ).
 
-% Write test file 1 content
-write_test1_content(Stream) :-
-    forall(test1_term(Term),
-           (write_canonical_term(Stream, Term),
-            write(Stream, '.\n'))).
-
-% Test file 1 terms
-test1_term((greet(Name, Greeting) :-
-    string_constant(Hello),
-    string_concat(Hello, Name, Temp),
-    string_constant(Bang),
-    string_concat(Temp, Bang, Greeting))).
-test1_term((join_lists([], L, L))).
-test1_term((join_lists([H|T], L, [H|Result]) :-
-    join_lists(T, L, Result))).
-test1_term(person(john)).
-test1_term(person(jane)).
-test1_term(person(bob)).
-test1_term((likes(john, X) :- person(X), \+ X = john)).
-test1_term(likes(jane, bob)).
-test1_term((format_greeting(Name, Greeting) :-
-    string_constant(Greet),
-    string_concat(Greet, Name, Temp),
-    string_constant(Welcome),
-    string_concat(Temp, Welcome, Greeting))).
-
-% Write test file 2 with proper string handling
-write_test_file2 :-
-    debug_msg('Writing test file 2'),
-    ensure_file('test2.pl'),
-    setup_call_cleanup(
-        open('test2.pl', write, Stream, [encoding(utf8)]),
-        write_test2_content(Stream),
-        close(Stream)
-    ).
-
-% Write test file 2 content
-write_test2_content(Stream) :-
-    forall(test2_term(Term),
-           (write_canonical_term(Stream, Term),
-            write(Stream, '.\n'))).
-
-% Test file 2 terms
-test2_term((make_file_path(Dir, SubDir, File, Path) :-
-    string_constant(Slash),
-    atom_concat(Dir, Slash, T1),
-    atom_concat(T1, SubDir, T2),
-    atom_concat(T2, Slash, T3),
-    atom_concat(T3, File, Path))).
-test2_term((process_lists(List1, List2, Str1, Str2, Result) :-
-    append(List1, List2, Combined),
-    string_concat(Str1, Str2, CombinedStr),
-    append(Combined, [CombinedStr], Result))).
-test2_term(employee(john, developer, 2020)).
-test2_term(employee(jane, manager, 2018)).
-test2_term(employee(bob, tester, 2021)).
-test2_term((senior_employee(Person, Role, Year) :-
-    employee(Person, Role, Year),
-    Year < 2020)).
-test2_term((format_employee(Name, Role, Year, Info) :-
-    string_constant(OpenParen),
-    string_concat(Name, OpenParen, T1),
-    string_concat(T1, Role, T2),
-    string_constant(SincePart),
-    string_concat(T2, SincePart, T3),
-    string_concat(T3, Year, T4),
-    string_constant(CloseParen),
-    string_concat(T4, CloseParen, Info))).
-test2_term((filter_recent_employees([], _, []))).
-test2_term((filter_recent_employees([employee(Name,_Role,Year)|Rest], Threshold, [Name|Names]) :-
-    Year >= Threshold,
-    filter_recent_employees(Rest, Threshold, Names))).
-test2_term((filter_recent_employees([_|Rest], Threshold, Names) :-
-    filter_recent_employees(Rest, Threshold, Names))).
-
-% Write a term in canonical form
-write_canonical_term(Stream, Term) :-
-    \+ \+ ( % Double negation to preserve variable names
-        numbervars(Term, 0, _),
-        write_term(Stream, Term, [
-            quoted(true),
-            ignore_ops(true),
-            numbervars(true)
-        ])
-    ).
-
-% Read terms from file
-read_terms(File, Terms) :-
-    debug_msg('Reading terms from: ~w', [File]),
-    (exists_file(File) ->
-        setup_call_cleanup(
-            open(File, read, Stream, [encoding(utf8)]),
-            read_all_terms(Stream, Terms),
-            close(Stream)
-        )
-    ;
-        debug_msg('File not found: ~w', [File]),
-        Terms = []
-    ).
-
-% Read all terms
-read_all_terms(Stream, Terms) :-
-    read_term(Stream, Term, [
-        variable_names(_),
-        double_quotes(string)
-    ]),
+% Read clauses from stream with accumulator
+read_clauses(Stream, Acc, Clauses) :-
+    repeat,
+    catch(
+        read_term(Stream, Term, []),
+        error(syntax_error(_), _),
+        Term = end_of_file
+    ),
     (Term == end_of_file ->
-        Terms = []
+        reverse(Acc, Clauses),
+        !
     ;
-        debug_msg('Read term: ~w', [Term]),
-        Terms = [Term|Rest],
-        read_all_terms(Stream, Rest)
+        rename_variables(Term, LetterTerm),
+        read_clauses(Stream, [LetterTerm|Acc], Clauses)
     ).
 
-% Convert between Prolog and Starlog
-convert_pl_to_sl((Head :- Body), (Head :- NewBody)) :- !,
+% Convert list of clauses
+convert_clauses([], []).
+convert_clauses([Clause|Clauses], [StarlogClause|StarlogClauses]) :-
+    (convert_pl_to_sl(Clause, StarlogClause) -> true ;
+     StarlogClause = Clause),  % Keep original if conversion fails
+    convert_clauses(Clauses, StarlogClauses).
+
+% Write clauses to output file
+write_clauses_to_file(File, Clauses) :-
+    setup_call_cleanup(
+        open(File, write, Stream),
+        write_clauses(Stream, Clauses),
+        close(Stream)
+    ).
+
+% Write clauses to stream
+write_clauses(_, []).
+write_clauses(Stream, [Clause|Clauses]) :-
+    catch(
+        (write_term(Stream, Clause, [quoted(false), numbervars(true)]),
+         write(Stream, '.\n')),
+        Error,
+        format('Error writing clause: ~w~n', [Error])
+    ),
+    write_clauses(Stream, Clauses).
+
+% Helper predicate to rename variables to letters
+rename_variables(Term, LetterTerm) :-
+    copy_term(Term, LetterTerm),  % Make a copy to preserve original
+    rename_vars(LetterTerm, 0, _).
+
+rename_vars(Term, N, N1) :-
+    var(Term),
+    !,
+    atom_number(NA, N),
+    atom_concat('A', NA, VarName),
+    Term = VarName,
+    N1 is N + 1.
+rename_vars(Term, N, N2) :-
+    compound(Term),
+    !,
+    Term =.. [_|Args],
+    rename_var_list(Args, N, N2).
+rename_vars(Term, N, N) :-
+    atomic(Term).
+
+rename_var_list([], N, N).
+rename_var_list([H|T], N, N2) :-
+    rename_vars(H, N, N1),
+    rename_var_list(T, N1, N2).
+
+% Conversion predicates
+convert_pl_to_sl((Head :- Body), (Head :- NewBody)) :-
+    !,
     convert_body_pl_to_sl(Body, NewBody).
 convert_pl_to_sl(Term, Term).
 
-convert_sl_to_pl((Head :- Body), (Head :- NewBody)) :- !,
-    convert_body_sl_to_pl(Body, NewBody).
-convert_sl_to_pl(Term, Term).
-
-% Convert Prolog body to Starlog
-convert_body_pl_to_sl((A, B), (NewA, NewB)) :- !,
+% Convert body predicates
+convert_body_pl_to_sl((A, B), (NewA, NewB)) :-
+    !,
     convert_body_pl_to_sl(A, NewA),
     convert_body_pl_to_sl(B, NewB).
+
+% Handle special cases for string operations
 convert_body_pl_to_sl(string_concat(A, B, C), (C is A : B)) :- !.
 convert_body_pl_to_sl(append(A, B, C), (C is A & B)) :- !.
-convert_body_pl_to_sl(atom_concat(A, B, C), (C is A ^ B)) :- !.
-convert_body_pl_to_sl(\+(A), \+(NewA)) :- !,
-    convert_body_pl_to_sl(A, NewA).
+convert_body_pl_to_sl(atom_concat(A, B, C), (C is A … B)) :- !.
+
+% Handle 'is' expressions directly
+convert_body_pl_to_sl((Output is Expr), (Output is Expr)) :- !.
+
+% Handle built-in predicates
+convert_body_pl_to_sl(Term, (Output is NewTerm)) :-
+    compound(Term),
+    built_in_predicate(Term, Output, NewTerm),
+    !.
+
+% Keep non-built-in predicates unchanged
 convert_body_pl_to_sl(Term, Term).
 
-% Convert Starlog body to Prolog
-convert_body_sl_to_pl((A, B), (NewA, NewB)) :- !,
-    convert_body_sl_to_pl(A, NewA),
-    convert_body_sl_to_pl(B, NewB).
-convert_body_sl_to_pl((C is A : B), string_concat(A, B, C)) :- !.
-convert_body_sl_to_pl((C is A & B), append(A, B, C)) :- !.
-convert_body_sl_to_pl((C is A ^ B), atom_concat(A, B, C)) :- !.
-convert_body_sl_to_pl(\+(A), \+(NewA)) :- !,
-    convert_body_sl_to_pl(A, NewA).
-convert_body_sl_to_pl(Term, Term).
-
-% Process files
-process_files(InputFile, OutputFile, Converter) :-
-    debug_msg('Processing files: Input=~w, Output=~w', [InputFile, OutputFile]),
-    ensure_file(OutputFile),
-    read_terms(InputFile, Terms),
-    maplist(Converter, Terms, ConvertedTerms),
-    write_terms(OutputFile, ConvertedTerms).
-
-% Write terms to file
-write_terms(File, Terms) :-
-    debug_msg('Writing terms to: ~w', [File]),
-    setup_call_cleanup(
-        open(File, write, Stream, [encoding(utf8)]),
-        write_terms_to_stream(Stream, Terms),
-        close(Stream)
-    ).
-
-% Write terms to stream
-write_terms_to_stream(Stream, Terms) :-
-    forall(member(Term, Terms),
-           (debug_msg('Writing term: ~w', [Term]),
-            write_canonical_term(Stream, Term),
-            write(Stream, '.\n'))).
-
-% Round-trip testing
-test_round_trip :-
-    debug_msg('Running round-trip tests...'),
-    write_test_files,
-    run_conversions,
-    check_results,
-    !.  % Cut to prevent backtracking
-
-% Write test files
-write_test_files :-
-    debug_msg('Creating test files...'),
-    write_test_file1,
-    write_test_file2.
-
-% Run all conversions
-run_conversions :-
-    debug_msg('Running conversions...'),
-    ensure_file('test1.sl'),
-    ensure_file('test2.sl'),
-    ensure_file('test1_rt.pl'),
-    ensure_file('test2_rt.pl'),
-    process_files('test1.pl', 'test1.sl', convert_pl_to_sl),
-    process_files('test2.pl', 'test2.sl', convert_pl_to_sl),
-    process_files('test1.sl', 'test1_rt.pl', convert_sl_to_pl),
-    process_files('test2.sl', 'test2_rt.pl', convert_sl_to_pl).
-
-% Check results
-check_results :-
-    debug_msg('Checking results...'),
-    check_file_pair('test1.pl', 'test1_rt.pl'),
-    check_file_pair('test2.pl', 'test2_rt.pl').
-
-% Check file pair
-check_file_pair(File1, File2) :-
-    read_file_to_string(File1, Content1, [encoding(utf8)]),
-    (exists_file(File2) ->
-        read_file_to_string(File2, Content2, [encoding(utf8)]),
-        compare_contents(File1, File2, Content1, Content2)
-    ;
-        debug_msg('~w does not exist', [File2])
-    ).
-
-% Compare contents
-compare_contents(File1, File2, Content1, Content2) :-
-    normalize_content(Content1, Norm1),
-    normalize_content(Content2, Norm2),
-    (Norm1 = Norm2 ->
-        debug_msg('~w and ~w match', [File1, File2])
-    ;
-        debug_msg('~w and ~w differ:', [File1, File2]),
-        debug_msg('Original:~n~w', [Content1]),
-        debug_msg('Round-trip:~n~w', [Content2])
-    ).
-
-% Normalize content
-normalize_content(Content, Normalized) :-
-    split_string(Content, "\n", "", Lines),
-    exclude(empty_line, Lines, NonEmpty),
-    atomic_list_concat(NonEmpty, '\n', Normalized).
-
-% Check for empty line
-empty_line("").
-
-% Main entry point
-main :-
-    debug_msg('Starting program'),
-    catch(
-        test_round_trip,
-        Error,
-        (debug_msg('Error: ~w', [Error]), fail)
-    ),
-    !.  % Cut to prevent backtracking
-
-% Initialize
-:- initialization(main, main).
+% Built-in predicate handlers
+built_in_predicate(term_to_atom(Term, Result), Result, term_to_atom(Term)).
+built_in_predicate(atom_to_term(Atom, Result), Result, atom_to_term(Atom)).
+built_in_predicate(string_to_atom(String, Result), Result, string_to_atom(String)).
+built_in_predicate(atom_to_string(Atom, Result), Result, atom_to_string(Atom)).
+built_in_predicate(number_chars(Number, Result), Result, number_chars(Number)).
+built_in_predicate(atom_chars(Atom, Result), Result, atom_chars(Atom)).
+built_in_predicate(string_chars(String, Result), Result, string_chars(String)).
+built_in_predicate(sub_atom(Atom, Before, Length, After, Result), Result, sub_atom(Atom, Before, Length, After)).
+built_in_predicate(sub_string(String, Before, Length, After, Result), Result, sub_string(String, Before, Length, After)).
+built_in_predicate(atom_length(Atom, Result), Result, atom_length(Atom)).
+built_in_predicate(string_length(String, Result), Result, string_length(String)).
+built_in_predicate(maplist(Pred, List, Result), Result, maplist(Pred, List)).
+built_in_predicate(foldl(Pred, List, Init, Result), Result, foldl(Pred, List, Init)).
+built_in_predicate(number_string(Number, Result), Result, number_string(Number)).
