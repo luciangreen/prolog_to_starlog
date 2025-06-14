@@ -7,28 +7,14 @@
 
 * Example Prolog code:
 ```
-:-(greet(A,B),','(string_constant(C),','(string_concat(C,A,D),','(string_constant(E),string_concat(D,E,B))))).
-join_lists([],A,A).
-:-(join_lists([A|B],C,[A|D]),join_lists(B,C,D)).
-person(john).
-person(jane).
-person(bob).
-:-(likes(john,A),','(person(A),\+(=(A,john)))).
-likes(jane,bob).
-:-(format_greeting(A,B),','(string_constant(C),','(string_concat(C,A,D),','(string_constant(E),string_concat(D,E,B))))).
+greet(Name, Greeting) :-
+    string_concat("Hello, ", Name, Temp1),
+    string_concat(Temp1, "!", Greeting).
 ```
 
 * Example equivalent Starlog code:
 ```
-:-(greet(A,B),','(string_constant(C),','(is(D,:(C,A)),','(string_constant(E),is(B,:(D,E)))))).
-join_lists([],A,A).
-:-(join_lists([A|B],C,[A|D]),join_lists(B,C,D)).
-person(john).
-person(jane).
-person(bob).
-:-(likes(john,A),','(person(A),\+(=(A,john)))).
-likes(jane,bob).
-:-(format_greeting(A,B),','(string_constant(C),','(is(D,:(C,A)),','(string_constant(E),is(B,:(D,E)))))).
+greet(Name, Greeting is ("Hello, " : Name) : "!").
 ```
 
 * Test using:
