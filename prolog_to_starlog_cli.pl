@@ -1,21 +1,39 @@
 :- module(prolog_to_starlog_cli, [main/0, hidden_or_special/1]).
 
 % Define operators for Starlog syntax
-:- op(600, xfx, ':').
-:- op(500, xfx, '&').
-:- op(500, xfx, '…').
-:- op(700, xfx, 'is').
+:- op(600, xfx, ':').  % string_concat operator
+:- op(500, xfx, '&').  % append operator 
+:- op(500, xfx, '•').  % atom_concat operator (using bullet)
+:- op(700, xfx, 'is'). % output assignment operator
+
+% Documentation of Starlog syntax:
+%
+% 1. Basic Predicate Conversion:
+%    Prolog:  built_in(A, B, C) where C is output
+%    Starlog: C is built_in(A, B)
+%
+% 2. Non-built-in predicates remain unchanged:
+%    Both:    custom_pred(A, B, C)
+%
+% 3. Nested Predicate Calls (Starlog to Prolog conversion only):
+%    Starlog: C is pred1(A, pred2(B))
+%    Prolog:  pred2(B, Temp), pred1(A, Temp, C)
+%
+% 4. String/List Operations:
+%    string_concat(A, B, C) -> C is A : B
+%    append(A, B, C)       -> C is A & B
+%    atom_concat(A, B, C)  -> C is A • B
 
 main :-
-    format('2025-06-14 23:08:55: Starting Prolog to Starlog converter~n'),
-    format('2025-06-14 23:08:55: User: luciangreen~n'),
+    format('2025-06-15 00:00:35: Starting Prolog to Starlog converter~n'),
+    format('2025-06-15 00:00:35: User: luciangreen~n'),
     process_files,
     !.  % Ensure deterministic execution
 
 % Process all Prolog files in current directory
 process_files :-
     working_directory(CWD, CWD),
-    format('2025-06-14 23:08:55: Working in directory: ~w~n', [CWD]),
+    format('2025-06-15 00:00:35: Working in directory: ~w~n', [CWD]),
     directory_files(CWD, AllFiles),
     exclude(hidden_or_special, AllFiles, Files),
     include(is_source_file, Files, SourceFiles),
@@ -37,7 +55,7 @@ is_source_file(File) :-
 % Process Prolog files
 process_prolog_files([]).
 process_prolog_files([File|Files]) :-
-    format('2025-06-14 23:08:55: Processing file: ~w~n', [File]),
+    format('2025-06-15 00:00:35: Processing file: ~w~n', [File]),
     (catch(
         process_single_file(File),
         Error,
@@ -111,10 +129,11 @@ rename_variables(Term, LetterTerm) :-
 rename_vars(Term, N, N1) :-
     var(Term),
     !,
-    atom_number(NA, N),
-    atom_concat('A', NA, VarName),
-    Term = VarName,
-    N1 is N + 1.
+    N1 is N + 1,
+    number_chars(N, NChars),
+    atom_chars(NA, NChars),
+    atom_concat('V', NA, VarName),  % Changed prefix from 'A' to 'V'
+    Term = VarName.
 rename_vars(Term, N, N2) :-
     compound(Term),
     !,
@@ -143,7 +162,7 @@ convert_body_pl_to_sl((A, B), (NewA, NewB)) :-
 % Handle special cases for string operations
 convert_body_pl_to_sl(string_concat(A, B, C), (C is A : B)) :- !.
 convert_body_pl_to_sl(append(A, B, C), (C is A & B)) :- !.
-convert_body_pl_to_sl(atom_concat(A, B, C), (C is A … B)) :- !.
+convert_body_pl_to_sl(atom_concat(A, B, C), (C is A • B)) :- !.
 
 % Handle 'is' expressions directly
 convert_body_pl_to_sl((Output is Expr), (Output is Expr)) :- !.
