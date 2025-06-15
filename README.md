@@ -2,7 +2,7 @@
 
 * Starlog represents
 `append(C,A,D)` as `is(D,&(C,A))`
-`string_concat(C,A,D)` as `is(D,:(C,A))`
+`string_concat(C,A,D)` as `is(D,C:A)`
 `atom_concat(C,A,D)` as `is(D,•(C,A))`
 
 * Example Prolog code:
