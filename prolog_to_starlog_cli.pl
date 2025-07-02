@@ -1,77 +1,103 @@
-:- module(prolog_to_starlog_cli, [main/0, hidden_or_special/1]).
+:- module(prolog_to_starlog_cli, [main/0]).
+:- use_module(var_utils).
 
-% Define operators for Starlog syntax
-:- op(600, xfx, ':').  % string_concat operator
-:- op(500, xfx, '&').  % append operator 
-:- op(500, xfx, '•').  % atom_concat operator (using bullet)
-:- op(700, xfx, 'is'). % output assignment operator
-
-% Documentation of Starlog syntax:
-%
-% 1. Basic Predicate Conversion:
-%    Prolog:  built_in(A, B, C) where C is output
-%    Starlog: C is built_in(A, B)
-%
-% 2. Non-built-in predicates remain unchanged:
-%    Both:    custom_pred(A, B, C)
-%
-% 3. Nested Predicate Calls (Starlog to Prolog conversion only):
-%    Starlog: C is pred1(A, pred2(B))
-%    Prolog:  pred2(B, Temp), pred1(A, Temp, C)
-%
-% 4. String/List Operations:
-%    string_concat(A, B, C) -> C is A : B
-%    append(A, B, C)       -> C is A & B
-%    atom_concat(A, B, C)  -> C is A • B
+% Define operators for Starlog syntax - order matters!
+:- op(700, xfx, is).
+:- op(600, xfx, ':').
+:- op(500, xfx, '&').
+:- op(500, xfx, '•').
 
 main :-
-    format('2025-06-15 00:00:35: Starting Prolog to Starlog converter~n'),
-    format('2025-06-15 00:00:35: User: luciangreen~n'),
-    process_files,
-    !.  % Ensure deterministic execution
+    convert_all_prolog_to_starlog,
+    halt.
 
-% Process all Prolog files in current directory
-process_files :-
+convert_all_prolog_to_starlog :-
     working_directory(CWD, CWD),
-    format('2025-06-15 00:00:35: Working in directory: ~w~n', [CWD]),
-    directory_files(CWD, AllFiles),
+    format('~n=== Prolog to Starlog Converter ===~n'),
+    format('Date/Time: 2025-07-02 15:24:50 UTC~n'),
+    format('User: luciangreenGo~n'),
+    format('Working in directory: ~w~n', [CWD]),
+    
+    % Look for files in the current directory
+    directory_files('.', AllFiles),
     exclude(hidden_or_special, AllFiles, Files),
-    include(is_source_file, Files, SourceFiles),
-    process_prolog_files(SourceFiles),
-    !.  % Ensure success
+    include(is_source_file, Files, PrologFiles),
+    length(PrologFiles, NumFiles),
+    format('Found ~w Prolog files to process: ~w~n', [NumFiles, PrologFiles]),
+    process_prolog_files(PrologFiles),
+    format('~n=== Prolog to Starlog Conversion Complete ===~n').
 
-% Filter out hidden and special files
-hidden_or_special(File) :-
-    atom_concat('.', _, File).
+hidden_or_special(File) :- sub_atom(File, 0, 1, _, '.').
 hidden_or_special('..').
 hidden_or_special('.').
 
-% Check if file is a source Prolog file
 is_source_file(File) :-
-    file_name_extension(_Base, 'pl', File),
-    \+ sub_atom(File, _, _, 0, '_starlog.pl'),
-    \+ sub_atom(File, _, _, 0, '_cli.pl').  % Skip CLI files
+    file_name_extension(Base, 'pl', File),
+    \+ sub_atom(Base, _, _, 0, '_starlog'),
+    \+ sub_atom(Base, _, _, 0, '_cli'),
+    \+ sub_atom(Base, _, _, 0, '_prolog'),
+    Base \= 'var_utils'.
 
-% Process Prolog files
 process_prolog_files([]).
 process_prolog_files([File|Files]) :-
-    format('2025-06-15 00:00:35: Processing file: ~w~n', [File]),
-    (catch(
-        process_single_file(File),
+    format('Processing file: ~w~n', [File]),
+    % Catch any errors but continue processing
+    catch(
+        (process_single_file(File), format('Successfully processed ~w~n', [File])),
         Error,
         format('Error processing ~w: ~w~n', [File, Error])
-    ) ; true),  % Continue even if file fails
+    ),
     process_prolog_files(Files).
 
-% Process a single Prolog file
-process_single_file(File) :-
-    read_file_to_clauses(File, Clauses),
-    convert_clauses(Clauses, StarlogClauses),
-    file_name_extension(Base, _, File),
+process_single_file(InputFile) :-
+    read_file_to_clauses(InputFile, Clauses0),
+    length(Clauses0, NumRaw),
+    format('Read ~w raw clauses from ~w~n', [NumRaw, InputFile]),
+    include(is_clause, Clauses0, Clauses),
+    length(Clauses, NumFiltered),
+    format('Filtered to ~w valid clauses~n', [NumFiltered]),
+    maplist(pl_to_starlog_with_compression, Clauses, StarlogClauses),
+    length(StarlogClauses, NumConverted),
+    format('Converted ~w clauses to Starlog with compression~n', [NumConverted]),
+    maplist(rename_vars_pretty, StarlogClauses, PrettyClauses),
+    
+    % Extract base filename and create output path
+    file_name_extension(Base, 'pl', InputFile),
     atom_concat(Base, '_starlog.pl', OutputFile),
-    write_clauses_to_file(OutputFile, StarlogClauses).
+    
+    % Copy original file header if it exists
+    copy_file_header(InputFile, OutputFile),
+    
+    write_clauses_to_file(OutputFile, PrettyClauses),
+    format('Wrote converted file: ~w~n', [OutputFile]).
 
-% Read file contents into clauses
+% Copy header comments from source file to destination file
+copy_file_header(SourceFile, DestFile) :-
+    setup_call_cleanup(
+        open(SourceFile, read, InStream),
+        (
+            setup_call_cleanup(
+                open(DestFile, write, OutStream),
+                copy_header_comments(InStream, OutStream),
+                close(OutStream)
+            )
+        ),
+        close(InStream)
+    ).
+
+copy_header_comments(InStream, OutStream) :-
+    read_line_to_string(InStream, Line),
+    (   Line \= end_of_file,
+        sub_atom(Line, 0, 1, _, '%')
+    ->  format(OutStream, "~s~n", [Line]),
+        copy_header_comments(InStream, OutStream)
+    ;   true
+    ).
+
+is_clause((:- _)) :- !, fail.
+is_clause((?- _)) :- !, fail.
+is_clause(_) :- !.
+
 read_file_to_clauses(File, Clauses) :-
     setup_call_cleanup(
         open(File, read, Stream),
@@ -79,115 +105,232 @@ read_file_to_clauses(File, Clauses) :-
         close(Stream)
     ).
 
-% Read clauses from stream with accumulator
 read_clauses(Stream, Acc, Clauses) :-
-    repeat,
-    catch(
-        read_term(Stream, Term, []),
-        error(syntax_error(_), _),
-        Term = end_of_file
-    ),
-    (Term == end_of_file ->
-        reverse(Acc, Clauses),
-        !
-    ;
-        rename_variables(Term, LetterTerm),
-        read_clauses(Stream, [LetterTerm|Acc], Clauses)
+    read_term(Stream, Term, []),
+    (   Term == end_of_file
+    ->  reverse(Acc, Clauses)
+    ;   read_clauses(Stream, [Term|Acc], Clauses)
     ).
 
-% Convert list of clauses
-convert_clauses([], []).
-convert_clauses([Clause|Clauses], [StarlogClause|StarlogClauses]) :-
-    (convert_pl_to_sl(Clause, StarlogClause) -> true ;
-     StarlogClause = Clause),  % Keep original if conversion fails
-    convert_clauses(Clauses, StarlogClauses).
+% --- Enhanced Converter: Prolog clause to Starlog clause with compression ---
+pl_to_starlog_with_compression((Head :- Body), (StarHead :- SBody)) :- 
+    !, 
+    extract_output_var(Head, OutputVar, StarHead),
+    pl_body_to_starlog_compressed(Body, OutputVar, SBody).
+pl_to_starlog_with_compression(Fact, StarFact) :-
+    extract_output_var(Fact, _, StarFact).
 
-% Write clauses to output file
+% Extract the output variable from a predicate head
+extract_output_var(Head, OutputVar, StarHead) :-
+    Head =.. [Pred|Args],
+    (   get_predicate_output_position(Pred, Args, OutPos),
+        OutPos > 0
+    ->  nth1(OutPos, Args, OutputVar),
+        delete_nth(Args, OutPos, _NewArgs),
+        StarHead =.. [Pred, OutputVar]
+    ;   StarHead = Head,
+        OutputVar = none
+    ).
+
+% Find the output position for known predicates
+get_predicate_output_position(remove_trailing_white_space, [_,_], 2).
+get_predicate_output_position(split12, [_,_,_,_], 4).
+get_predicate_output_position(string_concat, [_,_,Out], 3) :- !.
+get_predicate_output_position(atom_concat, [_,_,Out], 3) :- !.
+get_predicate_output_position(append, [_,_,Out], 3) :- !.
+get_predicate_output_position(length, [_,Out], 2) :- !.
+get_predicate_output_position(_, _, 0).  % Default: no output position
+
+% Delete the nth element from a list
+delete_nth(List, N, Result) :-
+    length(Prefix, N),
+    append(Prefix, [_|Suffix], List),
+    append(Prefix, Suffix, Result).
+
+% Compress conjunctions by looking for opportunities to nest predicate calls
+pl_body_to_starlog_compressed(Body, _OutputVar, CompressedBody) :-
+    flatten_conjunction(Body, Goals),
+    eliminate_duplicate_expressions(Goals, UniqueGoals),
+    compress_goals(UniqueGoals, CompressedGoals),
+    rebuild_conjunction(CompressedGoals, CompressedBody).
+
+% Eliminate duplicate expressions like (A is f, A is f) -> (A is f)
+eliminate_duplicate_expressions([], []).
+eliminate_duplicate_expressions([Goal|Goals], [Goal|UniqueGoals]) :-
+    exclude(same_assignment(Goal), Goals, FilteredGoals),
+    eliminate_duplicate_expressions(FilteredGoals, UniqueGoals).
+
+% Check if two goals are the same assignment (A is X) expressions
+same_assignment((Var1 is Expr1), (Var2 is Expr2)) :-
+    Var1 == Var2, Expr1 =@= Expr2, !.
+same_assignment(_, _) :- fail.
+
+% Flatten a conjunction into a list of goals
+flatten_conjunction((A,B), Goals) :- 
+    !,
+    flatten_conjunction(A, GoalsA),
+    flatten_conjunction(B, GoalsB),
+    append(GoalsA, GoalsB, Goals).
+flatten_conjunction(Goal, [Goal]).
+
+% Rebuild a conjunction from a list of goals
+rebuild_conjunction([Goal], Goal) :- !.
+rebuild_conjunction([Goal|Goals], (Goal,Rest)) :-
+    rebuild_conjunction(Goals, Rest).
+
+% Compress goals by identifying opportunities to nest function calls
+compress_goals(Goals, CompressedGoals) :-
+    compress_goals_pass(Goals, CompressedGoals).
+
+compress_goals_pass([], []).
+compress_goals_pass([Goal|Goals], [CompressedGoal|CompressedGoals]) :-
+    (   find_compression_opportunity(Goal, Goals, CompressedGoal, RemainingGoals)
+    ->  format('  Compressed: ~w with following goals~n', [Goal]),
+        compress_goals_pass(RemainingGoals, CompressedGoals)
+    ;   pl_goal_to_starlog(Goal, CompressedGoal),
+        compress_goals_pass(Goals, CompressedGoals)
+    ).
+
+% Find opportunities to compress consecutive goals
+find_compression_opportunity(FirstGoal, RestGoals, CompressedGoal, NewRestGoals) :-
+    % Look for pattern: builtin_pred(Args, Output), next_pred(..., Output, ...)
+    is_compressible_builtin(FirstGoal, Output),
+    select_goal_using_var(RestGoals, Output, SecondGoal, NewRestGoals),
+    compress_two_goals(FirstGoal, SecondGoal, Output, CompressedGoal).
+
+% Check if a goal is a compressible built-in predicate
+is_compressible_builtin(string_concat(_, _, Output), Output).
+is_compressible_builtin(append(_, _, Output), Output).
+is_compressible_builtin(atom_concat(_, _, Output), Output).
+is_compressible_builtin(string_length(_, Output), Output).
+is_compressible_builtin(atom_length(_, Output), Output).
+is_compressible_builtin(number_string(_, Output), Output).
+is_compressible_builtin(string_chars(_, Output), Output).
+is_compressible_builtin(atom_chars(_, Output), Output).
+is_compressible_builtin(sub_string(_, _, _, _, Output), Output).
+is_compressible_builtin(length(_, Output), Output).
+is_compressible_builtin(member(_, Output), Output).
+is_compressible_builtin(reverse(_, Output), Output).
+is_compressible_builtin(wrap(_, Output), Output).
+is_compressible_builtin(unwrap(_, Output), Output).
+is_compressible_builtin(head(_, Output), Output).
+is_compressible_builtin(tail(_, Output), Output).
+is_compressible_builtin(delete(_, _, Output), Output).
+is_compressible_builtin(string_to_number(_, Output), Output).
+is_compressible_builtin(random(_, Output), Output).
+is_compressible_builtin(ceiling(_, Output), Output).
+is_compressible_builtin(date(Output), Output).
+is_compressible_builtin(sqrt(_, Output), Output).
+is_compressible_builtin(round(_, Output), Output).
+is_compressible_builtin(findall(_, _, Output), Output).
+is_compressible_builtin(string_from_file(_, Output), Output).
+is_compressible_builtin(maplist(_, _, Output), Output).
+is_compressible_builtin(sort(_, Output), Output).
+is_compressible_builtin(intersection(_, _, Output), Output).
+is_compressible_builtin(read_string(_, _, _, _, Output), Output).
+is_compressible_builtin(atom_string(_, Output), Output).
+is_compressible_builtin(call(Output), Output).
+
+% Select a goal that uses the given variable and remove it from the list
+select_goal_using_var([Goal|Goals], Var, Goal, Goals) :-
+    goal_uses_var(Goal, Var),
+    var_used_only_once([Goal|Goals], Var).
+select_goal_using_var([Goal|Goals], Var, SelectedGoal, [Goal|RestGoals]) :-
+    select_goal_using_var(Goals, Var, SelectedGoal, RestGoals).
+
+% Check if a goal uses a specific variable
+goal_uses_var(Goal, Var) :-
+    term_variables(Goal, Vars),
+    member(Var, Vars).
+
+% Check if a variable is used only once in the remaining goals
+var_used_only_once(Goals, Var) :-
+    findall(G, (member(G, Goals), goal_uses_var(G, Var)), Uses),
+    length(Uses, 1).
+
+% Compress two goals into one by nesting the first into the second
+compress_two_goals(FirstGoal, SecondGoal, SharedVar, CompressedGoal) :-
+    pl_goal_to_starlog(FirstGoal, FirstStarlog),
+    extract_starlog_expression(FirstStarlog, SharedVar, NestedExpr),
+    substitute_var_in_goal(SecondGoal, SharedVar, NestedExpr, CompressedGoal).
+
+% Extract the expression from a Starlog 'is' statement
+extract_starlog_expression((Var is Expr), Var, Expr) :- !.
+extract_starlog_expression((Var = Expr), Var, Expr) :- !.
+extract_starlog_expression(Goal, _, Goal).
+
+% Substitute a variable in a goal with an expression
+substitute_var_in_goal(Goal, Var, Expr, NewGoal) :-
+    Goal =.. [Pred|Args],
+    substitute_var_in_args(Args, Var, Expr, NewArgs),
+    NewGoal =.. [Pred|NewArgs].
+
+substitute_var_in_args([], _, _, []).
+substitute_var_in_args([Arg|Args], Var, Expr, [NewArg|NewArgs]) :-
+    (   Arg == Var
+    ->  NewArg = Expr
+    ;   NewArg = Arg
+    ),
+    substitute_var_in_args(Args, Var, Expr, NewArgs).
+
+% Convert individual Prolog goals to Starlog
+pl_goal_to_starlog(string_concat(A,B,C), (C is (A : B))) :- !.
+pl_goal_to_starlog(append(A,B,C), (C is (A & B))) :- !.
+pl_goal_to_starlog(atom_concat(A,B,C), (C is (A • B))) :- !.
+pl_goal_to_starlog(string_length(A,B), (B is string_length(A))) :- !.
+pl_goal_to_starlog(number_string(A,B), (B is number_string(A))) :- !.
+pl_goal_to_starlog(atom_length(A,B), (B is atom_length(A))) :- !.
+pl_goal_to_starlog(sub_string(A,B,C,D,E), (E is sub_string(A,B,C,D))) :- !.
+pl_goal_to_starlog(string_chars(A,B), (B is string_chars(A))) :- !.
+pl_goal_to_starlog(atom_chars(A,B), (B is atom_chars(A))) :- !.
+
+% List operations
+pl_goal_to_starlog(length(A,B), (B is length_1(A))) :- !.
+pl_goal_to_starlog(member(A,B), (B is member_1(A))) :- !.
+pl_goal_to_starlog(reverse(A,B), (B is reverse(A))) :- !.
+pl_goal_to_starlog(head(A,B), (B is head(A))) :- !.
+pl_goal_to_starlog(tail(A,B), (B is tail(A))) :- !.
+pl_goal_to_starlog(delete(A,B,C), (C is delete(A,B))) :- !.
+pl_goal_to_starlog(wrap(A,B), (B is wrap(A))) :- !.
+pl_goal_to_starlog(unwrap(A,B), (B is unwrap(A))) :- !.
+pl_goal_to_starlog(maplist(A,B,C), (C is maplist(A,B))) :- !.
+pl_goal_to_starlog(sort(A,B), (B is sort(A))) :- !.
+pl_goal_to_starlog(intersection(A,B,C), (C is intersection(A,B))) :- !.
+
+% Math operations
+pl_goal_to_starlog(is(A,B), (A is B)) :- !.
+pl_goal_to_starlog(=(A,B), (A = B)) :- !.
+pl_goal_to_starlog(string_to_number(A,B), (B is string_to_number(A))) :- !.
+pl_goal_to_starlog(random(A,B), (B is random(A))) :- !.
+pl_goal_to_starlog(ceiling(A,B), (B is ceiling(A))) :- !.
+pl_goal_to_starlog(sqrt(A,B), (B is sqrt(A))) :- !.
+pl_goal_to_starlog(round(A,B), (B is round(A))) :- !.
+
+% Other operations
+pl_goal_to_starlog(date(A), (A is date)) :- !.
+pl_goal_to_starlog(findall(A,B,C), (C is findall(A,B))) :- !.
+pl_goal_to_starlog(string_from_file(A,B), (B is string_from_file(A))) :- !.
+pl_goal_to_starlog(read_string(A,B,C,D,E), (E is read_string(A,B,C,D))) :- !.
+pl_goal_to_starlog(atom_string(A,B), (B is atom_string(A))) :- !.
+pl_goal_to_starlog(call(A), A) :- !.
+pl_goal_to_starlog(is_space(A), is_space(A)) :- !.  % Special case for is_space/1
+
+pl_goal_to_starlog(true, true) :- !.
+pl_goal_to_starlog(Goal, Goal).
+
 write_clauses_to_file(File, Clauses) :-
     setup_call_cleanup(
-        open(File, write, Stream),
-        write_clauses(Stream, Clauses),
+        open(File, append, Stream),  % Use append mode since we already wrote the header
+        (write_clauses(Stream, Clauses), flush_output(Stream)),
         close(Stream)
     ).
 
-% Write clauses to stream
 write_clauses(_, []).
 write_clauses(Stream, [Clause|Clauses]) :-
-    catch(
-        (write_term(Stream, Clause, [quoted(false), numbervars(true)]),
-         write(Stream, '.\n')),
-        Error,
-        format('Error writing clause: ~w~n', [Error])
+    ( Clause = (Head :- true) ->
+        write_term(Stream, Head, [quoted(false), numbervars(true)]), write(Stream, '.\n')
+    ; Clause = (Head :- Body) ->
+        write_term(Stream, (Head :- Body), [quoted(false), numbervars(true)]), write(Stream, '.\n')
+    ;   write_term(Stream, Clause, [quoted(false), numbervars(true)]), write(Stream, '.\n')
     ),
     write_clauses(Stream, Clauses).
-
-% Helper predicate to rename variables to letters
-rename_variables(Term, LetterTerm) :-
-    copy_term(Term, LetterTerm),  % Make a copy to preserve original
-    rename_vars(LetterTerm, 0, _).
-
-rename_vars(Term, N, N1) :-
-    var(Term),
-    !,
-    N1 is N + 1,
-    number_chars(N, NChars),
-    atom_chars(NA, NChars),
-    atom_concat('V', NA, VarName),  % Changed prefix from 'A' to 'V'
-    Term = VarName.
-rename_vars(Term, N, N2) :-
-    compound(Term),
-    !,
-    Term =.. [_|Args],
-    rename_var_list(Args, N, N2).
-rename_vars(Term, N, N) :-
-    atomic(Term).
-
-rename_var_list([], N, N).
-rename_var_list([H|T], N, N2) :-
-    rename_vars(H, N, N1),
-    rename_var_list(T, N1, N2).
-
-% Conversion predicates
-convert_pl_to_sl((Head :- Body), (Head :- NewBody)) :-
-    !,
-    convert_body_pl_to_sl(Body, NewBody).
-convert_pl_to_sl(Term, Term).
-
-% Convert body predicates
-convert_body_pl_to_sl((A, B), (NewA, NewB)) :-
-    !,
-    convert_body_pl_to_sl(A, NewA),
-    convert_body_pl_to_sl(B, NewB).
-
-% Handle special cases for string operations
-convert_body_pl_to_sl(string_concat(A, B, C), (C is A : B)) :- !.
-convert_body_pl_to_sl(append(A, B, C), (C is A & B)) :- !.
-convert_body_pl_to_sl(atom_concat(A, B, C), (C is A • B)) :- !.
-
-% Handle 'is' expressions directly
-convert_body_pl_to_sl((Output is Expr), (Output is Expr)) :- !.
-
-% Handle built-in predicates
-convert_body_pl_to_sl(Term, (Output is NewTerm)) :-
-    compound(Term),
-    built_in_predicate(Term, Output, NewTerm),
-    !.
-
-% Keep non-built-in predicates unchanged
-convert_body_pl_to_sl(Term, Term).
-
-% Built-in predicate handlers
-built_in_predicate(term_to_atom(Term, Result), Result, term_to_atom(Term)).
-built_in_predicate(atom_to_term(Atom, Result), Result, atom_to_term(Atom)).
-built_in_predicate(string_to_atom(String, Result), Result, string_to_atom(String)).
-built_in_predicate(atom_to_string(Atom, Result), Result, atom_to_string(Atom)).
-built_in_predicate(number_chars(Number, Result), Result, number_chars(Number)).
-built_in_predicate(atom_chars(Atom, Result), Result, atom_chars(Atom)).
-built_in_predicate(string_chars(String, Result), Result, string_chars(String)).
-built_in_predicate(sub_atom(Atom, Before, Length, After, Result), Result, sub_atom(Atom, Before, Length, After)).
-built_in_predicate(sub_string(String, Before, Length, After, Result), Result, sub_string(String, Before, Length, After)).
-built_in_predicate(atom_length(Atom, Result), Result, atom_length(Atom)).
-built_in_predicate(string_length(String, Result), Result, string_length(String)).
-built_in_predicate(maplist(Pred, List, Result), Result, maplist(Pred, List)).
-built_in_predicate(foldl(Pred, List, Init, Result), Result, foldl(Pred, List, Init)).
-built_in_predicate(number_string(Number, Result), Result, number_string(Number)).
