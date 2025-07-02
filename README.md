@@ -164,7 +164,7 @@ The reverse conversion transforms Starlog code back to standard Prolog:
 | `B is head(A)` | `head(A, B)` |
 | `B is tail(A)` | `tail(A, B)` |
 | `C is delete(A, B)` | `delete(A, B, C)` |
-| `B is wrap(A)` | `wrap(A,
+| `B is wrap(A)` | `wrap(A, B)` |
 
 ## Usage
 
