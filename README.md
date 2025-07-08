@@ -1,15 +1,78 @@
 # Starlog Converter Documentation
 
-**Date**: 2025-07-02 16:23:54 UTC  
+**Date**: 2025-07-08 16:23:54 UTC  
 **Author**: luciangreenPlease
 
 ## Overview
 
 The Starlog Converter is a bidirectional translation tool that converts between standard Prolog syntax and Starlog syntax. Starlog is a variant of Prolog that uses a more functional notation, particularly for built-in predicates where the output parameter is represented using an "is" operator rather than as the last argument of a predicate.
 
+**NEW: Now supports `.sl` file extension for Starlog source code!**
+
 ## What is Starlog?
 
 Starlog is a Prolog variant that uses the notation `Result is function(Args)` instead of Prolog's `function(Args, Result)`. This makes code more readable when working with transformations and operations that produce a result, as the output variable appears first in the expression rather than at the end of a parameter list.
+
+## File Extensions
+
+- **`.pl` files**: Standard Prolog files and Starlog files in Prolog format
+- **`.sl` files**: Native Starlog source files (NEW!)
+
+## Command Line Tools
+
+The following tools are available for working with `.sl` files:
+
+### Convert Between Formats
+```bash
+./pl_to_sl    # Convert .pl files to .sl files
+./sl_to_pl    # Convert .sl files to .pl files
+```
+
+### Compile and Run Starlog Files
+```bash
+./sl_run              # Compile and run all .sl files
+./sl_to_executable    # Create executable shell scripts from .sl files
+```
+
+### Traditional Converters (still available)
+```bash
+swipl -g main -t halt prolog_to_starlog.pl     # Convert .pl to _starlog.pl
+swipl -g main -t halt starlog_to_prolog.pl     # Convert .pl to _prolog.pl
+```
+
+## Example Usage
+
+### Creating a Starlog Program
+
+Create a file `example.sl`:
+```prolog
+% Example Starlog Program
+% Math operations
+double(X, Result) :- Result is X * 2.
+square(X, Result) :- Result is X * X.
+
+% String operations  
+greet(Name, Greeting) :-
+    Greeting is string_concat("Hello, ", Name).
+
+% Demo
+demo :-
+    double(5, D),
+    format('Double of 5 is: ~w~n', [D]).
+```
+
+### Compiling and Running
+```bash
+# Run the Starlog program
+./sl_run
+
+# Convert to Prolog format
+./sl_to_pl
+
+# Create standalone executable
+./sl_to_executable
+./example.sh  # Run the generated executable
+```
 
 ## Key Conversion Pattern
 

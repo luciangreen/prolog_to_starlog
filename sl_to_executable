@@ -1,0 +1,5 @@
+#!/bin/bash
+# Compile .sl files to executables
+# Usage: ./sl_to_executable
+
+swipl -g main -t halt sl_to_executable.pl
