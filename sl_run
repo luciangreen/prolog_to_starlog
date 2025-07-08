@@ -1,0 +1,5 @@
+#!/bin/bash
+# Compile and run .sl files
+# Usage: ./sl_run
+
+swipl -g main -t halt sl_compiler.pl
