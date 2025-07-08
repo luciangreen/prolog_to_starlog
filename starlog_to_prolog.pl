@@ -34,9 +34,11 @@ hidden_or_special('..').
 hidden_or_special('.').
 
 is_prolog_file(File) :-
-    file_name_extension(_, 'pl', File),
+    (file_name_extension(_, 'pl', File) ; file_name_extension(_, 'sl', File)),
     File \= 'var_utils.pl',
-    File \= 'starlog_to_prolog.pl'.
+    File \= 'starlog_to_prolog.pl',
+    File \= 'prolog_to_starlog.pl',
+    File \= 'file_extension_converter.pl'.
 
 process_starlog_files([]).
 process_starlog_files([File|Files]) :-
@@ -62,8 +64,11 @@ process_single_file(InputFile) :-
     maplist(rename_vars_pretty, PrologClauses, PrettyClauses),
     
     % Extract base filename and create output path
-    file_name_extension(Base, 'pl', InputFile),
-    atom_concat(Base, '_prolog.pl', OutputFile),
+    file_name_extension(Base, Ext, InputFile),
+    ( Ext = 'sl' ->
+        atom_concat(Base, '_prolog.pl', OutputFile)
+    ; atom_concat(Base, '_prolog.pl', OutputFile)
+    ),
     
     % Copy original file header if it exists
     copy_file_header(InputFile, OutputFile),
