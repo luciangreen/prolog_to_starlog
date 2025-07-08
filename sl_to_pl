@@ -1,0 +1,5 @@
+#!/bin/bash
+# Convert .sl files to .pl files
+# Usage: ./sl_to_pl
+
+swipl -g main_sl -t halt starlog_to_prolog.pl

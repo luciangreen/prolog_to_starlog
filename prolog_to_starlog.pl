@@ -10,6 +10,10 @@ main :-
     convert_all_prolog_to_starlog,
     halt.
 
+main_sl :-
+    convert_all_prolog_to_starlog_sl,
+    halt.
+
 convert_all_prolog_to_starlog :-
     working_directory(CWD, CWD),
     format('~n=== Prolog to Starlog Converter ===~n'),
@@ -28,6 +32,25 @@ convert_all_prolog_to_starlog :-
       process_prolog_files(PrologFiles)
     ),
     format('~n=== Prolog to Starlog Conversion Complete ===~n').
+
+convert_all_prolog_to_starlog_sl :-
+    working_directory(CWD, CWD),
+    format('~n=== Prolog to Starlog (.sl) Converter ===~n'),
+    format('Date/Time: 2025-07-08 16:23:54 UTC~n'),
+    format('User: luciangreenPlease~n'),
+    format('Working in directory: ~w~n', [CWD]),
+    
+    % Look for files in the current directory
+    directory_files('.', AllFiles),
+    exclude(hidden_or_special, AllFiles, Files),
+    include(is_prolog_file, Files, PrologFiles),
+    ( PrologFiles = [] ->
+        format('No .pl files found for conversion~n')
+    ; length(PrologFiles, NumFiles),
+      format('Found ~w files to process: ~w~n', [NumFiles, PrologFiles]),
+      process_prolog_files_to_sl(PrologFiles)
+    ),
+    format('~n=== Prolog to Starlog (.sl) Conversion Complete ===~n').
 
 hidden_or_special(File) :- sub_atom(File, 0, 1, _, '.').
 hidden_or_special('..').
@@ -67,6 +90,40 @@ process_single_file(InputFile) :-
     % Extract base filename and create output path
     file_name_extension(Base, 'pl', InputFile),
     atom_concat(Base, '_starlog.pl', OutputFile),
+    
+    % Copy original file header if it exists
+    copy_file_header(InputFile, OutputFile),
+    
+    format('Writing to: ~w~n', [OutputFile]),
+    write_clauses_to_file(OutputFile, PrettyClauses),
+    format('Wrote converted file: ~w~n', [OutputFile]).
+
+process_prolog_files_to_sl([]).
+process_prolog_files_to_sl([File|Files]) :-
+    format('Processing file: ~w~n', [File]),
+    catch(
+        (process_single_file_to_sl(File), format('Successfully processed ~w~n', [File])),
+        Error,
+        format('Error processing ~w: ~w~n', [File, Error])
+    ),
+    process_prolog_files_to_sl(Files).
+
+process_single_file_to_sl(InputFile) :-
+    format('Reading file: ~w~n', [InputFile]),
+    read_file_to_clauses(InputFile, Clauses0),
+    length(Clauses0, NumRaw),
+    format('Read ~w raw clauses from ~w~n', [NumRaw, InputFile]),
+    include(is_clause, Clauses0, Clauses),
+    length(Clauses, NumFiltered),
+    format('Filtered to ~w valid clauses~n', [NumFiltered]),
+    maplist(pl_to_starlog, Clauses, StarlogClauses),
+    length(StarlogClauses, NumConverted),
+    format('Converted ~w clauses to Starlog~n', [NumConverted]),
+    maplist(rename_vars_pretty, StarlogClauses, PrettyClauses),
+    
+    % Extract base filename and create .sl output path
+    file_name_extension(Base, 'pl', InputFile),
+    atom_concat(Base, '.sl', OutputFile),
     
     % Copy original file header if it exists
     copy_file_header(InputFile, OutputFile),
