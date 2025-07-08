@@ -7,6 +7,34 @@
 
 The Starlog Converter is a bidirectional translation tool that converts between standard Prolog syntax and Starlog syntax. Starlog is a variant of Prolog that uses a more functional notation, particularly for built-in predicates where the output parameter is represented using an "is" operator rather than as the last argument of a predicate.
 
+## .sl File Support
+
+The converter now supports native .sl file extensions for Starlog code:
+
+- **File Extension Converter**: `file_extension_converter.pl` converts between .pl and .sl formats
+- **Runtime Support**: `run_starlog.sh` executes .sl files directly in SWI-Prolog with proper operator definitions
+- **Compilation**: `compile_starlog.sh` compiles .sl files into standalone executables
+- **Native Processing**: Both converters (`prolog_to_starlog.pl` and `starlog_to_prolog.pl`) now handle .sl files directly
+
+### Usage Examples
+
+```bash
+# Convert file extensions between .pl and .sl
+swipl -g main -t halt file_extension_converter.pl
+
+# Run a Starlog file with a specific goal
+./run_starlog.sh math_operations.sl "double(5, X)"
+
+# Compile a Starlog file to an executable
+./compile_starlog.sh basic_facts.sl my_program
+
+# Convert Prolog files to Starlog (supports both .pl and .sl inputs)
+swipl -g main -t halt prolog_to_starlog.pl
+
+# Convert Starlog files back to Prolog (supports both .pl and .sl inputs)
+swipl -g main -t halt starlog_to_prolog.pl
+```
+
 ## What is Starlog?
 
 Starlog is a Prolog variant that uses the notation `Result is function(Args)` instead of Prolog's `function(Args, Result)`. This makes code more readable when working with transformations and operations that produce a result, as the output variable appears first in the expression rather than at the end of a parameter list.
