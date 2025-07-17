@@ -1,4 +1,4 @@
-:- module(var_utils, [rename_vars_pretty/2, is_atom_or_string/1]).
+:- module(var_utils, [rename_vars_pretty/2]).
 
 % Rename variables in a term to pretty names (A, B, C, etc.)
 rename_vars_pretty(Term, PrettyTerm) :-
@@ -22,7 +22,3 @@ rename_vars([Var|Vars], N0, N) :-
        Var = VarName
     ),
     rename_vars(Vars, N1, N).
-
-% Check if a term is an atom or string
-is_atom_or_string(X) :- atom(X), !.
-is_atom_or_string(X) :- string(X), !.
