@@ -172,12 +172,12 @@ The reverse conversion transforms Starlog code back to standard Prolog:
 
 ```bash
 cd starlog_files
-swipl -q -g main -s ../starlog_to_prolog.pl 
+swipl -q -g main -s ../starlog_to_prolog_cli.pl 
 ```
 
 ### Converting Prolog to Starlog
 
 ```bash
 cd starlog_files
-swipl -q -g main -s ../prolog_to_starlog.pl
+swipl -q -g main -s ../prolog_to_starlog_cli.pl
 ```
