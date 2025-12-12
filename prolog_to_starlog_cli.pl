@@ -110,9 +110,10 @@ get_predicate_output_position(remove_trailing_white_space, [_,_], 2).
 get_predicate_output_position(split12, [_,_,_,_], 4).
 get_predicate_output_position(_, _, 0).  % Default: no output position
 
-% Delete the nth element from a list
+% Delete the nth element from a list (1-indexed)
 delete_nth(List, N, Result) :-
-    length(Prefix, N),
+    N1 is N - 1,
+    length(Prefix, N1),
     append(Prefix, [_|Suffix], List),
     append(Prefix, Suffix, Result).
 

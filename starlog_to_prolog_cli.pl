@@ -60,12 +60,8 @@ process_single_file(InputFile) :-
     
     % Extract base filename and create output path
     file_name_extension(Base, 'pl', InputFile),
-    % Remove "_starlog" suffix from base name
-    (   sub_atom(Base, Before, 8, 0, '_starlog')
-    ->  sub_atom(Base, 0, Before, _, BaseWithoutSuffix),
-        atom_concat(BaseWithoutSuffix, '_prolog.pl', OutputFile)
-    ;   atom_concat(Base, '_prolog.pl', OutputFile)
-    ),
+    % Append "_prolog" to the base name (without removing _starlog)
+    atom_concat(Base, '_prolog.pl', OutputFile),
     
     format('Writing to: ~w~n', [OutputFile]),
     write_clauses_to_file(OutputFile, PrettyClauses),
@@ -117,8 +113,11 @@ insert_at_position(Args, last, Value, AllArgs) :-
     !,
     append(Args, [Value], AllArgs).
 insert_at_position(Args, Pos, Value, AllArgs) :-
-    length(Prefix, Pos),
-    append(Prefix, Suffix, AllArgs),
+    integer(Pos),
+    Pos > 0,
+    Pos1 is Pos - 1,
+    length(Prefix, Pos1),
+    append(Prefix, Suffix, Args),
     append(Prefix, [Value|Suffix], AllArgs).
 
 % Decompress Starlog body by flattening nested expressions
@@ -195,7 +194,9 @@ decompose_nested_args([Arg|Args], AccSimple, SimpleArgs, AllPreGoals) :-
 is_truly_nested_expression(Expr) :-
     compound(Expr),
     \+ is_simple_starlog_operation(Expr),
-    \+ is_simple_compound(Expr).
+    \+ is_simple_compound(Expr),
+    functor(Expr, Functor, _),
+    Functor \= '$VAR'.  % Don't treat numbered variables as nested expressions
 
 % Simple Starlog operations that don't need further decomposition
 is_simple_starlog_operation(string_length(_)).
@@ -243,10 +244,12 @@ create_goal_for_expr(Expr, Var, Goal) :-
     (   functor(Expr, Functor, _),
         (   Functor = length_1 % length'1
         ->  Expr =.. [_|Args],
-            Goal =.. [length, Args, Var]
+            append(Args, [Var], AllArgs),
+            Goal =.. [length|AllArgs]
         ;   Functor = member_1 % member'1
         ->  Expr =.. [_|Args],
-            Goal =.. [member, Args, Var]
+            append(Args, [Var], AllArgs),
+            Goal =.. [member|AllArgs]
         ;   Functor = findall_until_fail
         ->  Expr =.. [_, A, B, C],
             Goal =.. [findall_until_fail, A, B, C, Var]
@@ -328,8 +331,8 @@ starlog_goal_to_pl(X is date, date(X)) :- !.
 starlog_goal_to_pl(X is findall(Y,Z), findall(Y,Z,X)) :- !.
 starlog_goal_to_pl(X is string_from_file(Y), string_from_file(Y, X)) :- !.
 starlog_goal_to_pl(X is read_string(A,B,C,D), read_string(A,B,C,D,X)) :- !.
-starlog_goal_to_pl(Goal, call(Goal)) :- is_truly_nested_expression(Goal), !.  % Handle call as last resort
 
+% Fallthrough: pass non-Starlog predicates through unchanged
 starlog_goal_to_pl(true, true) :- !.
 starlog_goal_to_pl(Goal, Goal).
 
@@ -337,6 +340,7 @@ safe_concat_args(Y, Z) :- safe_concat_arg(Y), safe_concat_arg(Z).
 safe_concat_arg(Arg) :- var(Arg), !.
 safe_concat_arg(Arg) :- atom(Arg), !.
 safe_concat_arg(Arg) :- string(Arg), !.
+safe_concat_arg('$VAR'(_)) :- !.  % Allow numbered variables from numbervars/3
 
 write_clauses_to_file(File, Clauses) :-
     setup_call_cleanup(

@@ -1,0 +1,13 @@
+# Test artifacts
+temp/
+/tmp/
+
+# Editor files
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Generated output files (keep test files)
+*_starlog.pl
+*_prolog.pl
