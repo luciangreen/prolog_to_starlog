@@ -115,7 +115,8 @@ insert_at_position(Args, last, Value, AllArgs) :-
 insert_at_position(Args, Pos, Value, AllArgs) :-
     integer(Pos),
     Pos > 0,
-    length(Prefix, Pos),
+    Pos1 is Pos - 1,
+    length(Prefix, Pos1),
     append(Prefix, Suffix, Args),
     append(Prefix, [Value|Suffix], AllArgs).
 
