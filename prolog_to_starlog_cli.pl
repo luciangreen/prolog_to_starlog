@@ -86,36 +86,12 @@ read_clauses(Stream, Acc, Clauses) :-
     ).
 
 % --- Enhanced Converter: Prolog clause to Starlog clause with compression ---
-pl_to_starlog_with_compression((Head :- Body), (StarHead :- SBody)) :- 
+% User-defined predicates keep their original head structure
+% Only built-in predicates in the body are converted to Starlog "is" syntax
+pl_to_starlog_with_compression((Head :- Body), (Head :- SBody)) :- 
     !, 
-    extract_output_var(Head, OutputVar, StarHead),
-    pl_body_to_starlog_compressed(Body, OutputVar, SBody).
-pl_to_starlog_with_compression(Fact, StarFact) :-
-    extract_output_var(Fact, _, StarFact).
-
-% Extract the output variable from a predicate head
-extract_output_var(Head, OutputVar, StarHead) :-
-    Head =.. [Pred|Args],
-    (   get_predicate_output_position(Pred, Args, OutPos),
-        OutPos > 0
-    ->  nth1(OutPos, Args, OutputVar),
-        delete_nth(Args, OutPos, _NewArgs),
-        StarHead =.. [Pred, OutputVar]
-    ;   StarHead = Head,
-        OutputVar = none
-    ).
-
-% Find the output position for known predicates
-get_predicate_output_position(remove_trailing_white_space, [_,_], 2).
-get_predicate_output_position(split12, [_,_,_,_], 4).
-get_predicate_output_position(_, _, 0).  % Default: no output position
-
-% Delete the nth element from a list (1-indexed)
-delete_nth(List, N, Result) :-
-    N1 is N - 1,
-    length(Prefix, N1),
-    append(Prefix, [_|Suffix], List),
-    append(Prefix, Suffix, Result).
+    pl_body_to_starlog_compressed(Body, none, SBody).
+pl_to_starlog_with_compression(Fact, Fact).
 
 % Compress conjunctions by looking for opportunities to nest predicate calls
 pl_body_to_starlog_compressed(Body, _OutputVar, CompressedBody) :-

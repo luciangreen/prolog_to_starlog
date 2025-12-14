@@ -87,38 +87,12 @@ read_clauses(Stream, Acc, Clauses) :-
     ).
 
 % --- Enhanced Converter: Starlog clause to Prolog clause with decompression ---
-starlog_to_pl_with_decompression((Var is Func :- Body), (Head :- PBody)) :- 
-    !,
-    reconstruct_prolog_head(Var, Func, Head),
-    starlog_body_to_pl_decompressed(Body, PBody).
+% User-defined predicates keep their original head structure
+% Only built-in predicates in the body are converted from Starlog "is" syntax
 starlog_to_pl_with_decompression((Head :- Body), (Head :- PBody)) :- 
     !, 
     starlog_body_to_pl_decompressed(Body, PBody).
 starlog_to_pl_with_decompression(Fact, Fact).
-
-% Reconstruct a Prolog predicate head from Starlog format
-reconstruct_prolog_head(OutputVar, Func, Head) :-
-    Func =.. [Pred|Args],
-    get_output_position(Pred, OutPos),
-    insert_at_position(Args, OutPos, OutputVar, AllArgs),
-    Head =.. [Pred|AllArgs].
-
-% Get the output position for known predicates
-get_output_position(remove_trailing_white_space, 2).
-get_output_position(split12, 4).
-get_output_position(_, last).  % Default: add at the end
-
-% Insert a value at a specific position in a list
-insert_at_position(Args, last, Value, AllArgs) :-
-    !,
-    append(Args, [Value], AllArgs).
-insert_at_position(Args, Pos, Value, AllArgs) :-
-    integer(Pos),
-    Pos > 0,
-    Pos1 is Pos - 1,
-    length(Prefix, Pos1),
-    append(Prefix, Suffix, Args),
-    append(Prefix, [Value|Suffix], AllArgs).
 
 % Decompress Starlog body by flattening nested expressions
 starlog_body_to_pl_decompressed(Body, DecompressedBody) :-
