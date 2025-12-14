@@ -90,11 +90,11 @@ read_clauses(Stream, Acc, Clauses) :-
 % Only built-in predicates in the body are converted to Starlog "is" syntax
 pl_to_starlog_with_compression((Head :- Body), (Head :- SBody)) :- 
     !, 
-    pl_body_to_starlog_compressed(Body, none, SBody).
+    pl_body_to_starlog_compressed(Body, SBody).
 pl_to_starlog_with_compression(Fact, Fact).
 
 % Compress conjunctions by looking for opportunities to nest predicate calls
-pl_body_to_starlog_compressed(Body, _OutputVar, CompressedBody) :-
+pl_body_to_starlog_compressed(Body, CompressedBody) :-
     flatten_conjunction(Body, Goals),
     eliminate_duplicate_expressions(Goals, UniqueGoals),
     compress_goals(UniqueGoals, CompressedGoals),
