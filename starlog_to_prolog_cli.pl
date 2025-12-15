@@ -109,10 +109,11 @@ decompress_goal(Goal, Goals) :-
         Goals = [PlGoal]
     ).
 
-% Decompress nested expressions in goals - BUT NOT simple Starlog built-ins
+% Decompress nested expressions in goals - BUT NOT simple Starlog built-ins or standard Prolog
 decompress_nested_goal(Goal, Goals) :-
     Goal =.. [Pred|InArgs],
     \+ is_simple_starlog_builtin(Goal),  % Don't decompose simple Starlog built-ins
+    \+ is_standard_prolog_goal(Goal),     % Don't decompose standard Prolog goals
     decompose_nested_args(InArgs, [], SimpleArgs, PreGoals),
     PreGoals \= [],
     NewGoal =.. [Pred|SimpleArgs],
@@ -152,6 +153,22 @@ is_simple_starlog_builtin((_ is intersection(_,_))).
 is_simple_starlog_builtin((_ is read_string(_,_,_,_))).
 is_simple_starlog_builtin((_ is atom_string(_))).
 
+% Check if this is a standard Prolog goal that shouldn't be decomposed
+% Standard Prolog is/2 with non-Starlog-operation right-hand side should not be decomposed
+is_standard_prolog_goal((_ is Expr)) :- 
+    \+ is_simple_starlog_operation(Expr),
+    % Also check it's not a recognized Starlog operator pattern
+    \+ (compound(Expr), functor(Expr, Op, _), member(Op, [':', '&', '•'])),
+    !.
+% Standard Prolog predicates that are not Starlog built-ins
+is_standard_prolog_goal(member(_, _)).
+is_standard_prolog_goal(append(_, _, _)).
+is_standard_prolog_goal(length(_, _)).
+is_standard_prolog_goal(_ = _).
+is_standard_prolog_goal(true).
+is_standard_prolog_goal(fail).
+is_standard_prolog_goal(!).
+
 % Decompose arguments, extracting nested expressions into separate goals
 decompose_nested_args([], SimpleArgs, SimpleArgs, []).
 decompose_nested_args([Arg|Args], AccSimple, SimpleArgs, AllPreGoals) :-
@@ -169,8 +186,16 @@ is_truly_nested_expression(Expr) :-
     compound(Expr),
     \+ is_simple_starlog_operation(Expr),
     \+ is_simple_compound(Expr),
+    \+ is_list_structure(Expr),  % Don't treat list structures as nested expressions
     functor(Expr, Functor, _),
     Functor \= '$VAR'.  % Don't treat numbered variables as nested expressions
+
+% Check if this is a list structure (internal representation of lists)
+is_list_structure([]).
+is_list_structure([_|_]).
+is_list_structure('[]').
+is_list_structure('.'(_, _)).
+is_list_structure('[|]'(_, _)).
 
 % Simple Starlog operations that don't need further decomposition
 is_simple_starlog_operation(string_length(_)).
