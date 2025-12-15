@@ -155,6 +155,8 @@ is_simple_starlog_builtin((_ is atom_string(_))).
 
 % Check if this is a standard Prolog goal that shouldn't be decomposed
 % Standard Prolog is/2 with non-Starlog-operation right-hand side should not be decomposed
+% Cut is used here to commit once we've identified it's an is/2 goal, preventing unnecessary
+% checking of other is_standard_prolog_goal clauses for efficiency
 is_standard_prolog_goal((_ is Expr)) :- 
     \+ is_simple_starlog_operation(Expr),
     % Also check it's not a recognized Starlog operator pattern
@@ -191,11 +193,12 @@ is_truly_nested_expression(Expr) :-
     Functor \= '$VAR'.  % Don't treat numbered variables as nested expressions
 
 % Check if this is a list structure (internal representation of lists)
-is_list_structure([]).
-is_list_structure([_|_]).
-is_list_structure('[]').
-is_list_structure('.'(_, _)).  % Standard Prolog list cell representation
-is_list_structure('[|]'(_, _)).  % Alternative list representation used by some Prolog systems
+% Note: [] handles the list syntax sugar while '[]' handles the atom representation
+is_list_structure([]).          % Empty list syntax sugar
+is_list_structure([_|_]).       % Non-empty list syntax sugar
+is_list_structure('[]').        % Empty list as atom (after read_term processing)
+is_list_structure('.'(_, _)).   % Standard Prolog list cell representation
+is_list_structure('[|]'(_, _)). % Alternative list representation (SWI-Prolog, after numbervars)
 
 % Simple Starlog operations that don't need further decomposition
 is_simple_starlog_operation(string_length(_)).
