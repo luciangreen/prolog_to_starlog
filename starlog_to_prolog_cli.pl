@@ -158,7 +158,7 @@ is_simple_starlog_builtin((_ is atom_string(_))).
 is_standard_prolog_goal((_ is Expr)) :- 
     \+ is_simple_starlog_operation(Expr),
     % Also check it's not a recognized Starlog operator pattern
-    \+ (compound(Expr), functor(Expr, Op, _), member(Op, [':', '&', '•'])),
+    \+ (compound(Expr), functor(Expr, Op, _), is_starlog_operator(Op)),
     !.
 % Standard Prolog predicates that are not Starlog built-ins
 is_standard_prolog_goal(member(_, _)).
@@ -194,8 +194,8 @@ is_truly_nested_expression(Expr) :-
 is_list_structure([]).
 is_list_structure([_|_]).
 is_list_structure('[]').
-is_list_structure('.'(_, _)).
-is_list_structure('[|]'(_, _)).
+is_list_structure('.'(_, _)).  % Standard Prolog list cell representation
+is_list_structure('[|]'(_, _)).  % Alternative list representation used by some Prolog systems
 
 % Simple Starlog operations that don't need further decomposition
 is_simple_starlog_operation(string_length(_)).
@@ -230,6 +230,11 @@ is_simple_starlog_operation(atom_string(_)).
 is_simple_compound((_ : _)).
 is_simple_compound((_ & _)).
 is_simple_compound((_ • _)).
+
+% Starlog operators (centralized definition)
+is_starlog_operator(':').
+is_starlog_operator('&').
+is_starlog_operator('•').
 
 % Decompose a nested expression into a variable and prerequisite goals
 decompose_nested_expression(Expr, Var, Goals) :-
