@@ -170,6 +170,19 @@ is_standard_prolog_goal(_ = _).
 is_standard_prolog_goal(true).
 is_standard_prolog_goal(fail).
 is_standard_prolog_goal(!).
+% Conditionals and control structures
+is_standard_prolog_goal((_ -> _)).
+is_standard_prolog_goal((_ ; _)).
+is_standard_prolog_goal((_ -> _ ; _)).
+% Comparison operators
+is_standard_prolog_goal(_ > _).
+is_standard_prolog_goal(_ < _).
+is_standard_prolog_goal(_ >= _).
+is_standard_prolog_goal(_ =< _).
+is_standard_prolog_goal(_ == _).
+is_standard_prolog_goal(_ \== _).
+is_standard_prolog_goal(_ =:= _).
+is_standard_prolog_goal(_ =\= _).
 
 % Decompose arguments, extracting nested expressions into separate goals
 decompose_nested_args([], SimpleArgs, SimpleArgs, []).
@@ -186,19 +199,22 @@ decompose_nested_args([Arg|Args], AccSimple, SimpleArgs, AllPreGoals) :-
 % Check if an expression is truly nested (compound but not a simple Starlog operation)
 is_truly_nested_expression(Expr) :-
     compound(Expr),
+    functor(Expr, Functor, _),
+    Functor \= '$VAR',  % Don't treat numbered variables as nested expressions (must check before is_list_structure)
     \+ is_simple_starlog_operation(Expr),
     \+ is_simple_compound(Expr),
-    \+ is_list_structure(Expr),  % Don't treat list structures as nested expressions
-    functor(Expr, Functor, _),
-    Functor \= '$VAR'.  % Don't treat numbered variables as nested expressions
+    \+ is_list_structure(Expr).  % Don't treat list structures as nested expressions
 
 % Check if this is a list structure (internal representation of lists)
 % Note: [] handles the list syntax sugar while '[]' handles the atom representation
 is_list_structure([]).          % Empty list syntax sugar
 is_list_structure([_|_]).       % Non-empty list syntax sugar
 is_list_structure('[]').        % Empty list as atom (after read_term processing)
-is_list_structure('.'(_, _)).   % Standard Prolog list cell representation
-is_list_structure('[|]'(_, _)). % Alternative list representation (SWI-Prolog, after numbervars)
+% For compound terms, check functor first to avoid instantiation errors
+is_list_structure(Term) :-      
+    compound(Term),
+    functor(Term, Functor, _),
+    (Functor = '.' ; Functor = '[|]').
 
 % Simple Starlog operations that don't need further decomposition
 is_simple_starlog_operation(string_length(_)).
