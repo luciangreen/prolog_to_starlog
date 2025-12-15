@@ -111,19 +111,17 @@ starlog_to_pl_with_decompression(Fact, Fact).
 
 
 % Decompress a single goal, potentially expanding nested expressions
-decompress_goal(Goal, VNs,Goals1) :-
-%trace,
-    (	%read_term_from_atom(Goal, Goals),
-    	%decompress_nested_goal
-    	%trace,
-    	%term_to_atom(Goal,Goal1),
-	    %read_term_from_atom(Goal, Term, [variable_names(VNs)]),
-	    %trace,
-   pretty_goal_list(Goal%Term
-   , VNs, _Goals, Goals1)
-    ->  format('  Decompressed nested goal: ~w~n', [Goal])
-    ;   %starlog_goal_to_pl(Goal, PlGoal),
-        Goals1 = [_PlGoal]
+decompress_goal(Goal, VNs, Goals1) :-
+    % Handle conjunctions by processing each goal separately
+    ( Goal = (G1, G2) ->
+        decompress_goal(G1, VNs, Goals1a),
+        decompress_goal(G2, VNs, Goals1b),
+        rebuild_conjunction([Goals1a, Goals1b], Goals1),
+        format('  Decompressed nested goal: ~w~n', [Goal])
+    ; pretty_goal_list(Goal, VNs, _Goals, Goals1) ->
+        format('  Decompressed nested goal: ~w~n', [Goal])
+    ; % If pretty_goal_list fails, convert using starlog_goal_to_pl
+        starlog_goal_to_pl(Goal, Goals1)
     ).
 
 
@@ -451,42 +449,13 @@ write_clauses(Stream, [Clause|Clauses]) :-
 % Pretty-print from a string that contains a single term ending with '.'
 % Example:
 % ?- pretty_goal_list_from_atom("E is •(A:(B:(D•F)), C).", Goals).
-pretty_goal_list(InputTerm, VNs, Goals, Goals1) :-
+pretty_goal_list(InputTerm, _VNs, Goals, Goals1) :-
     once(decompress_nested_goal(InputTerm, Goals)),
-
-
-    term_variables(InputTerm, InVars),
-    term_variables(Goals, GoalVars),
-    temps_only(GoalVars, InVars, Temps),
-
-%trace,
-    extend_varnames(VNs, Temps, VNs2),
-length(Temps,Temps_L),
-length(T2,Temps_L),
-append(T1,T2,VNs2),
-
-findall(T3=T5,(member(T4=T5,T1%T2
-),replace_var_terms(T5,T3)%term_to_atom(T6,T4),var_number(T7,T6),numbervars(T6,0,_),var_number(T6,T3)
-),T12
-),
-%trace,
-findall(T4%T3
-=_T5,(member(T4=T5,T2
-),%replace_var_terms(T5,T3)
-char_code(T4,T41),T42 is T41-65,
-numbervars(T3,T42,_),var_number(T3,_)
-%read_term_from_atom(T4, G, [variable_names(Vars)]).
-%(T3,T4)%,var_number(T7,T6),numbervars(T6,0,_),var_number(T6,T3)
-),T22
-),
-append(T12,T22,VNs3),
-
-    %copy_term(Goals, Goals1),
-    square_to_round(Goals,Goals2),
-    %trace,
-    with_output_to(atom(Goals1),write_term(Goals2, [variable_names(VNs3)
-    ])),
-    nl.
+    % Simply return the Goals as a proper term
+    % The numbervars(true) option in write_term will handle $VAR(N) -> A, B, C conversion
+    square_to_round(Goals, Goals2),
+    % Rebuild conjunction from list of goals
+    rebuild_conjunction(Goals2, Goals1).
         
 % Pretty-print from a stream (file, etc.)
 % Example:
@@ -675,6 +644,7 @@ is_value_builtin(atom_chars, 1).
 is_value_builtin(string_to_number, 1).
 is_value_builtin(random, 1).
 is_value_builtin(sort, 1).
+is_value_builtin(reverse, 1).
 is_value_builtin(intersection, 2).
 is_value_builtin(head, 1).
 is_value_builtin(tail, 1).
