@@ -600,6 +600,7 @@ next_free_letter(Code0, Used, Name) :-
 
 
 decompress_nested_goal((Out is Expr), Goals) :-
+%trace,
     compile_expr(Expr, Out, Goals).
 
 
@@ -626,8 +627,17 @@ compile_expr(Expr, Out, Goals) :-
     append(GL, GR, G0),
     append(G0, [string_concat(LV, RV, Out)], Goals).
 
+compile_expr(Expr, Out, Goals) :-
+    ( Expr = (L & R) ; Expr =.. ['&', L, R] ),
+    !,
+    compile_value(L, LV, GL),
+    compile_value(R, RV, GR),
+    append(GL, GR, G0),
+    append(G0, [append(LV, RV, Out)], Goals).
+
 
 % Built-in value functors → Functor(..., Out)
+/*
 compile_expr(Expr, Out, Goals) :-
     compound(Expr),
     Expr =.. [F|Args],
@@ -638,7 +648,36 @@ compile_expr(Expr, Out, Goals) :-
     append(Gs, [Goal], Goals),
     append(Vals, [Out], ValsWithOut),
     Goal =.. [F|ValsWithOut].
+*/
 
+compile_expr(Expr, Out, Goals) :-
+    %( Expr = (L : R) ; Expr =.. [':', L, R] ),
+    %trace,
+    Expr =.. [F|Args],
+    !,
+    %compile_value(L, LV, GL),
+    %compile_value(R, RV, GR),
+    compile_values(Args, Vals, Gs),
+    %append(GL, GR, G0),
+    append(Gs, [Goal], Goals),
+    append(Vals, [Out], ValsWithOut),
+    Goal =.. [F|ValsWithOut],
+    append(G0, [Goal], Goals).
+
+/*
+x:
+compile_expr(Expr, Out, Goals) :-
+trace,
+    compound(Expr),
+    Expr =.. [F|Args],
+    is_value_builtin(F, Arity),
+    length(Args, Arity),
+    !,
+    compile_values(Args, Vals, Gs),
+    append(Gs, [Goal], Goals),
+    append(Vals, [Out], ValsWithOut),
+    Goal =.. [F|ValsWithOut].
+*/
 
 % Arithmetic expressions → Out is Expr
 compile_expr(Expr, Out, [Out is Expr]) :-
@@ -682,7 +721,8 @@ fresh_var(V) :- V = _.
 is_expr_form(Expr) :-
     compound(Expr),
     functor(Expr, F, A),
-    memberchk(F/A, [(':')/2, ('•')/2]).
+    (memberchk(F/A, [(':')/2, ('•')/2, ('&')/2])->true;
+    is_value_builtin(F,A)).
 
 
 % Built-ins that return a value in the last argument (same idea as your prior list)
