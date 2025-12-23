@@ -166,10 +166,6 @@ The reverse conversion transforms Starlog code back to standard Prolog:
 | `C is delete(A, B)` | `delete(A, B, C)` |
 | `B is wrap(A)` | `wrap(A, B)` |
 
-## Requirements
-
-* [List Prolog Interpreter](https://github.com/luciangreen/listprologinterpreter)
-
 ## Usage
 
 ### Converting Starlog to Prolog

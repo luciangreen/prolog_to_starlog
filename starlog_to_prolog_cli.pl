@@ -20,9 +20,9 @@ main :-
 
 convert_all_starlog_to_prolog :-
     working_directory(CWD, CWD),
-    format('~n=== Starlog to Prolog Converter ===~n', []),
-    format('Date/Time: 2025-07-02 00:25:18 UTC~n', []),
-    format('User: luciangreenPlease~n', []),
+    format('~n=== Starlog to Prolog Converter ===~n'),
+    format('Date/Time: 2025-07-02 00:25:18 UTC~n'),
+    format('User: luciangreenPlease~n'),
     format('Working in directory: ~w~n', [CWD]),
     
     % Look for Starlog files in the current directory
@@ -30,12 +30,12 @@ convert_all_starlog_to_prolog :-
     exclude(hidden_or_special, AllFiles, Files),
     include(is_starlog_file, Files, StarlogFiles),
     ( StarlogFiles = [] ->
-        format('No _starlog.pl files found for conversion~n', [])
+        format('No _starlog.pl files found for conversion~n')
     ; length(StarlogFiles, NumFiles),
       format('Found ~w Starlog files to process: ~w~n', [NumFiles, StarlogFiles]),
       process_starlog_files(StarlogFiles)
     ),
-    format('~n=== Starlog to Prolog Conversion Complete ===~n', []).
+    format('~n=== Starlog to Prolog Conversion Complete ===~n').
 
 
 hidden_or_special(File) :- sub_atom(File, 0, 1, _, '.').
@@ -473,13 +473,10 @@ write_clauses(Stream, [Clause|Clauses]) :-
         write(Stream,S1),
 
 write(Stream, '.\n')
-    ;   Clause = (FactOrRule, _VNs) ->
-        % Handle facts and other clauses - extract just the clause part
-        term_to_atom(FactOrRule,S),
-        term_to_atom_protocol(FactOrRule,S1),
-        write(Stream,S1),
-     	write(Stream, '.\n')
-    ;   % Fallback for clauses without VNs (shouldn't happen)
+    ;       %with_output_to(atom(S2),write_term(Clause, [variable_names(VNs),quoted(true), numbervars(true)])), 
+
+    %with_output_to(string(S),write_term(S2, [variable_names([]),quoted(true), numbervars(true)])),
+        %term_to_atom(S1,S),
         term_to_atom(Clause,S),
         term_to_atom_protocol(Clause,S1),
         write(Stream,S1),
@@ -859,8 +856,7 @@ open_file_s_s(File1,String) :-
 
 term_to_atom_protocol(Term,Atom2) :-
 	protocol('tmp32478.txt'),
-	write_term(Term, [quoted(true), numbervars(true)]),
-	nl,
+	writeln(Term),
 	noprotocol,
 	open_file_s_s("tmp32478.txt",String),
 	atom_string(String,Atom1),
