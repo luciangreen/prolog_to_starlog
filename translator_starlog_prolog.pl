@@ -25,58 +25,47 @@ is_base_predicate(A==B):-!,fail.
 is_base_predicate(A\=B):-!,fail.
 is_base_predicate(A is B):-!,fail.
 is_base_predicate(A):-compound(A),A=..[B|C],atom(B).
-generate_base_fact(A,B):-get_base_predicate_name(A,C),atom_concat(C,s,D),format(atom(B),% ~w([...]).  % TODO: Fill in your base facts,[D]).
+generate_base_fact(A,B):-get_base_predicate_name(A,C),atom_concat(C,s,D),format(atom(B),'% ~w([...]).  % TODO: Fill in your base facts',[D]).
 get_base_predicate_name(base(A,B,C),D):- A=..[D|E].
 get_base_predicate_name(iteration(A,B),none):-!.
 get_base_predicate_name(nested(A,B,C),D):-get_base_predicate_name(A,D).
-generate_main_predicate(A,B,C):-get_base_predicate_name(B,D),atom_concat(D,s,E),capitalize_atom(E,F),count_levels(B,G),H is G+1,generate_var_sequence(F,H,I),I=[J|K],last(I,L),format(atom(M),    ~w(~w),[E,J]),generate_chain_calls(K,1,J,N),append([M],N,O),atomics_to_string(O,,
-,P),format(atom(C),~w(~w) :-
-~w.,[A,L,P]).
-count_levels(base(A,B,C),1),[B1=A,C1=B,D1=C].
-count_levels(iteration(A,B),1),[B1=A,C1=B].
+generate_main_predicate(A,B,C):-get_base_predicate_name(B,D),atom_concat(D,s,E),capitalize_atom(E,F),count_levels(B,G),H is G+1,generate_var_sequence(F,H,I),I=[J|K],last(I,L),format(atom(M),'    ~w(~w)',[E,J]),generate_chain_calls(K,1,J,N),append([M],N,O),atomics_to_string(O,',\n',P),format(atom(C),'~w(~w) :-\n~w.',[A,L,P]).
+count_levels(base(A,B,C),1).
+count_levels(iteration(A,B),1).
 count_levels(nested(A,B,C),D):-count_levels(A,E),D is E+1.
-generate_var_sequence(A,B,C):-findall(D,(between(1,B,E),format(atom(D),~w~d,[A,E])),C).
-generate_chain_calls([],A,B,[]),[B1=A,C1=B].
-generate_chain_calls([A|B],C,D,[E|F]):-format(atom(G),findall~|~`0t~d~3+,[C]),format(atom(E),    ~w(~w, ~w),[G,D,A]),H is C+1,generate_chain_calls(B,H,A,F).
-generate_helper_predicates(base(A,B,C),D,[E,F]):-format(atom(G),findall~|~`0t~d~3+,[D]),format(atom(E),~w([],[]).,[G]),generate_recursive_clause(G,B,C,A,F).
-generate_helper_predicates(iteration(A,B),C,[D,E]):-format(atom(F),findall~|~`0t~d~3+,[C]),format(atom(D),~w([],[]).,[F]),generate_iteration_clause(F,A,E).
-generate_helper_predicates(nested(A,B,C),D,E):-generate_helper_predicates(A,D,F),count_levels(A,G),H is D+G,format(atom(I),findall~|~`0t~d~3+,[H]),format(atom(J),~w([],[]).,[I]),generate_outer_recursive_clause(I,B,K),append(F,[J,K],E).
-generate_iteration_clause(A,B,C):-format_template(B,D),format(atom(C),~w([X|Xs],[~w|Ys]) :- ~w(Xs,Ys).,[A,D,A]).
-generate_recursive_clause(A,B,C=D,E,F):-D=G-H->format(atom(F),~w([X|Xs],[Y|Ys]) :- Y = ~w-X, ~w(Xs,Ys).,[A,G,A]);D=..[I|J]->format(atom(F),~w([X|Xs],[Y|Ys]) :- Y = ~w(X), ~w(Xs,Ys).,[A,I,A]);format(atom(F),~w([X|Xs],[Y|Ys]) :- Y = X, ~w(Xs,Ys).,[A,A]).
-generate_recursive_clause(A,B,none,C,D):-compound(B),\+is_list(B)->B=..[E|F],format(atom(D),~w([X|Xs],[~w(X)|Ys]) :- ~w(Xs,Ys).,[A,E,A]);var(B)->format(atom(D),~w([X|Xs],[X|Ys]) :- ~w(Xs,Ys).,[A,A]);atom(B)->format(atom(D),~w([X|Xs],[X|Ys]) :- ~w(Xs,Ys).,[A,A]);format_template(B,G),format(atom(D),~w([X|Xs],[~w|Ys]) :- ~w(Xs,Ys).,[A,G,A]).
-generate_outer_recursive_clause(A,B,C):-format_template(B,D),format(atom(C),~w([X|Xs],[~w|Ys]) :- ~w(Xs,Ys).,[A,D,A]).
+generate_var_sequence(A,B,C):-findall(D,(between(1,B,E),format(atom(D),'~w~d',[A,E])),C).
+generate_chain_calls([],_,_,[]).
+generate_chain_calls([A|B],C,D,[E|F]):-format(atom(G),'findall~|~`0t~d~3+',[C]),format(atom(E),'    ~w(~w, ~w)',[G,D,A]),H is C+1,generate_chain_calls(B,H,A,F).
+generate_helper_predicates(base(A,B,C),D,[E,F]):-format(atom(G),'findall~|~`0t~d~3+',[D]),format(atom(E),'~w([],[]).',[G]),generate_recursive_clause(G,B,C,A,F).
+generate_helper_predicates(iteration(A,B),C,[D,E]):-format(atom(F),'findall~|~`0t~d~3+',[C]),format(atom(D),'~w([],[]).',[F]),generate_iteration_clause(F,A,E).
+generate_helper_predicates(nested(A,B,C),D,E):-generate_helper_predicates(A,D,F),count_levels(A,G),H is D+G,format(atom(I),'findall~|~`0t~d~3+',[H]),format(atom(J),'~w([],[]).',[I]),generate_outer_recursive_clause(I,B,K),append(F,[J,K],E).
+generate_iteration_clause(A,B,C):-format_template(B,D),format(atom(C),'~w([X|Xs],[~w|Ys]) :- ~w(Xs,Ys).',[A,D,A]).
+generate_recursive_clause(A,B,C=D,E,F):-D=G-H->format(atom(F),'~w([X|Xs],[Y|Ys]) :- Y = ~w-X, ~w(Xs,Ys).',[A,G,A]);D=..[I|J]->format(atom(F),'~w([X|Xs],[Y|Ys]) :- Y = ~w(X), ~w(Xs,Ys).',[A,I,A]);format(atom(F),'~w([X|Xs],[Y|Ys]) :- Y = X, ~w(Xs,Ys).',[A,A]).
+generate_recursive_clause(A,B,none,C,D):-compound(B),\+is_list(B)->B=..[E|F],format(atom(D),'~w([X|Xs],[~w(X)|Ys]) :- ~w(Xs,Ys).',[A,E,A]);var(B)->format(atom(D),'~w([X|Xs],[X|Ys]) :- ~w(Xs,Ys).',[A,A]);atom(B)->format(atom(D),'~w([X|Xs],[X|Ys]) :- ~w(Xs,Ys).',[A,A]);format_template(B,G),format(atom(D),'~w([X|Xs],[~w|Ys]) :- ~w(Xs,Ys).',[A,G,A]).
+generate_outer_recursive_clause(A,B,C):-format_template(B,D),format(atom(C),'~w([X|Xs],[~w|Ys]) :- ~w(Xs,Ys).',[A,D,A]).
 format_template([A,B],C):-A==B,!,C=[X,X].
-format_template([A|B],C):-!,format(atom(C),[~w|~w],[A,B]).
-format_template(A,B):-var(A),!,B=R1.
-format_template(A,B):-format(atom(B),~w,[A]).
+format_template([A|B],C):-!,format(atom(C),'[~w|~w]',[A,B]).
+format_template(A,B):-var(A),!,B=_.
+format_template(A,B):-format(atom(B),'~w',[A]).
 capitalize_atom(A,B):-atom_chars(A,[C|D]),upcase_atom(C,E),atom_chars(B,[E|D]).
-format_output(A,B,C,D):-atomics_to_string([A,,B,],
-,E),atomics_to_string(C,
-,F),format(atom(D),~w~w,[E,F]).
+format_output(A,B,C,D):-atomics_to_string([A,',',B,']'],'\n',E),atomics_to_string(C,'\n',F),format(atom(D),'~w~w',[E,F]).
 generate_base_facts(A,B):-findall(D,(member(E,A),get_base_predicate_name(E,D),D\=none),C),list_to_set(C,F),maplist(generate_single_base_fact,F,B).
-generate_single_base_fact(A,B):-atom_concat(A,s,C),format(atom(B),% ~w([...]).  % TODO: Fill in your base facts,[C]).
+generate_single_base_fact(A,B):-atom_concat(A,s,C),format(atom(B),'% ~w([...]).  % TODO: Fill in your base facts',[C]).
 generate_main_predicate_v2(A,B,C,D,E):-C=[F],D=[]->generate_main_predicate_simple(A,B,F,E);generate_main_predicate_complex(A,B,C,D,E).
-generate_main_predicate_simple(A,B,C,D):-get_base_predicate_name(C,E),(E=none->format(atom(F),~w(~w),[A,B]),format(atom(D),~w.,[F]);atom_concat(E,s,G),capitalize_atom(G,H),count_levels(C,I),J is I+1,generate_var_sequence(H,J,K),K=[L|M],last(K,N),format(atom(O),    ~w(~w),[G,L]),generate_chain_calls(M,1,L,P),append([O],P,Q),atomics_to_string(Q,,
-,R),(B=[S]->format(atom(D),~w(~w) :-
-~w.,[A,N,R]);length(B,T),format(atom(D),~w(~w) :-
-~w.,[A,N,R]))).
-generate_main_predicate_complex(A,B,C,D,E):-findall(G,(member(H,C),get_base_predicate_name(H,G),G\=none),F),list_to_set(F,I),findall(K,(member(L,I),atom_concat(L,s,M),capitalize_atom(M,N),format(atom(K),    ~w(~w1),[M,N])),J),generate_all_chains(C,1,O),maplist(format_goal_call,D,P),append([J,O,P],Q),flatten(Q,R),(B=[S]->format(atom(T),~w(~w),[A,S]);format_args(B,U),format(atom(T),~w(~w),[A,U])),(R=[]->format(atom(E),~w.,[T]);atomics_to_string(R,,
-,V),format(atom(E),~w :-
-~w.,[T,V])).
-format_goal_call(A,B):-format(atom(B),    ~w,[A]).
-format_args(A,B):-maplist(format_single_arg,A,C),atomics_to_string(C,, ,B).
-format_single_arg(A,B):-format(atom(B),~w,[A]).
-generate_all_chains([],A,[]),[B1=A].
+generate_main_predicate_simple(A,B,C,D):-get_base_predicate_name(C,E),(E=none->format(atom(F),'~w(~w)',[A,B]),format(atom(D),'~w.',[F]);atom_concat(E,s,G),capitalize_atom(G,H),count_levels(C,I),J is I+1,generate_var_sequence(H,J,K),K=[L|M],last(K,N),format(atom(O),'    ~w(~w)',[G,L]),generate_chain_calls(M,1,L,P),append([O],P,Q),atomics_to_string(Q,',\n',R),(B=[S]->format(atom(D),'~w(~w) :-\n~w.',[A,N,R]);length(B,T),format(atom(D),'~w(~w) :-\n~w.',[A,N,R]))).
+generate_main_predicate_complex(A,B,C,D,E):-findall(G,(member(H,C),get_base_predicate_name(H,G),G\=none),F),list_to_set(F,I),findall(K,(member(L,I),atom_concat(L,s,M),capitalize_atom(M,N),format(atom(K),'    ~w(~w1)',[M,N])),J),generate_all_chains(C,1,O),maplist(format_goal_call,D,P),append([J,O,P],Q),flatten(Q,R),(B=[S]->format(atom(T),'~w(~w)',[A,S]);format_args(B,U),format(atom(T),'~w(~w)',[A,U])),(R=[]->format(atom(E),'~w.',[T]);atomics_to_string(R,',\n',V),format(atom(E),'~w :-\n~w.',[T,V])).
+format_goal_call(A,B):-format(atom(B),'    ~w',[A]).
+format_args(A,B):-maplist(format_single_arg,A,C),atomics_to_string(C,', ',B).
+format_single_arg(A,B):-format(atom(B),'~w',[A]).
+generate_all_chains([],_,[]).
 generate_all_chains([A|B],C,D):-count_levels(A,E),generate_chain_for_structure(A,C,E,F),G is C+E,generate_all_chains(B,G,H),append(F,H,D).
-generate_chain_for_structure(A,B,C,D):-get_base_predicate_name(A,E),(E=none->F=Y1;atom_concat(E,s,G),capitalize_atom(G,F)),H is B+C,findall(J,(between(B,H,K),format(atom(J),~w~d,[F,K])),I),I=[L|M],generate_chain_calls_v2(M,B,L,D).
-generate_chain_calls_v2([],A,B,[]),[B1=A,C1=B].
-generate_chain_calls_v2([A|B],C,D,[E|F]):-format(atom(G),findall~|~`0t~d~3+,[C]),format(atom(E),    ~w(~w, ~w),[G,D,A]),H is C+1,generate_chain_calls_v2(B,H,A,F).
-generate_all_helper_predicates([],A,[]),[B1=A].
+generate_chain_for_structure(A,B,C,D):-get_base_predicate_name(A,E),(E=none->F='Y1';atom_concat(E,s,G),capitalize_atom(G,F)),H is B+C,findall(J,(between(B,H,K),format(atom(J),'~w~d',[F,K])),I),I=[L|M],generate_chain_calls_v2(M,B,L,D).
+generate_chain_calls_v2([],_,_,[]).
+generate_chain_calls_v2([A|B],C,D,[E|F]):-format(atom(G),'findall~|~`0t~d~3+',[C]),format(atom(E),'    ~w(~w, ~w)',[G,D,A]),H is C+1,generate_chain_calls_v2(B,H,A,F).
+generate_all_helper_predicates([],_,[]).
 generate_all_helper_predicates([A|B],C,D):-generate_helper_predicates(A,C,E),count_levels(A,F),G is C+F,generate_all_helper_predicates(B,G,H),append(E,H,D).
-format_output_v2(A,B,C,D):-atomics_to_string(A,
-,E),atomics_to_string(C,
-,F),format(atom(D),~w~n~n~w~n~w,[E,B,F]).
-test_simple:-format(~n=== Test 1: Simple Single-Level Findall ===~n),A=test(R) :- findall(f(X), base(X), R).,format(Z1,[A]),translate(A,B),format(A2,[B]),format(✓ Test 1 completed~n).
-test_with_transform:-format(~n=== Test 2: Single Findall with Transform ===~n),A=test(R) :- findall(Y1, (colour(Y), Y1 = c-Y), R).,format(Z1,[A]),translate(A,B),format(A2,[B]),format(✓ Test 2 completed~n).
-test_nested:-format(~n=== Test 3: Nested Findall (Problem Statement) ===~n),A=predicate(YYs) :- findall([Y2,Y2], (findall(Y1, (colour(Y), Y1 = c-Y), Ys), member(Y2, Ys)), YYs).,format(B2),format(predicate(YYs) :-~n),format(    findall([Y2,Y2],~n),format(        (findall(Y1,(colour(Y),Y1=c-Y),Ys),~n),format(         member(Y2,Ys)),~n),format(        YYs).~n~n),translate(A,B),format(A2,[B]),format(✓ Test 3 completed~n).
-run_tests:-format(~n================================================~n),format(  Findall to Predicates Translator~n),format(================================================~n),catch(test_simple,A,format(C2,[A])),catch(test_with_transform,A,format(D2,[A])),catch(test_nested,A,format(E2,[A])),format(~n================================================~n),format(  All Tests Completed!~n),format(================================================~n~n).
+format_output_v2(A,B,C,D):-atomics_to_string(A,'\n',E),atomics_to_string(C,'\n',F),format(atom(D),'~w~n~n~w~n~w',[E,B,F]).
+test_simple:-format('~n=== Test 1: Simple Single-Level Findall ===~n'),A='test(R) :- findall(f(X), base(X), R).',format('Z1',[A]),translate(A,B),format('A2',[B]),format('✓ Test 1 completed~n').
+test_with_transform:-format('~n=== Test 2: Single Findall with Transform ===~n'),A='test(R) :- findall(Y1, (colour(Y), Y1 = c-Y), R).',format('Z1',[A]),translate(A,B),format('A2',[B]),format('✓ Test 2 completed~n').
+test_nested:-format('~n=== Test 3: Nested Findall (Problem Statement) ===~n'),A='predicate(YYs) :- findall([Y2,Y2], (findall(Y1, (colour(Y), Y1 = c-Y), Ys), member(Y2, Ys)), YYs).',format('B2'),format('predicate(YYs) :-~n'),format('    findall([Y2,Y2],~n'),format('        (findall(Y1,(colour(Y),Y1=c-Y),Ys),~n'),format('         member(Y2,Ys)),~n'),format('        YYs).~n~n'),translate(A,B),format('A2',[B]),format('✓ Test 3 completed~n').
+run_tests:-format('~n================================================~n'),format('  Findall to Predicates Translator~n'),format('================================================~n'),catch(test_simple,A,format('C2',[A])),catch(test_with_transform,A,format('D2',[A])),catch(test_nested,A,format('E2',[A])),format('~n================================================~n'),format('  All Tests Completed!~n'),format('================================================~n~n').
