@@ -485,44 +485,44 @@ format_output_v2(BaseFactLines, MainPred, HelperPreds, Output) :-
  */
 
 test_simple :-
-    format('~n=== Test 1: Simple Single-Level Findall ===~n'),
+    format('~n=== Test 1: Simple Single-Level Findall ===~n', []),
     Input = 'test(R) :- findall(f(X), base(X), R).',
     format('Input:  ~w~n~n', [Input]),
     translate(Input, Output),
     format('Output:~n~w~n', [Output]),
-    format('✓ Test 1 completed~n').
+    format('✓ Test 1 completed~n', []).
 
 test_with_transform :-
-    format('~n=== Test 2: Single Findall with Transform ===~n'),
+    format('~n=== Test 2: Single Findall with Transform ===~n', []),
     Input = 'test(R) :- findall(Y1, (colour(Y), Y1 = c-Y), R).',
     format('Input:  ~w~n~n', [Input]),
     translate(Input, Output),
     format('Output:~n~w~n', [Output]),
-    format('✓ Test 2 completed~n').
+    format('✓ Test 2 completed~n', []).
 
 test_nested :-
-    format('~n=== Test 3: Nested Findall (Problem Statement) ===~n'),
+    format('~n=== Test 3: Nested Findall (Problem Statement) ===~n', []),
     Input = 'predicate(YYs) :- findall([Y2,Y2], (findall(Y1, (colour(Y), Y1 = c-Y), Ys), member(Y2, Ys)), YYs).',
-    format('Input:~n'),
-    format('predicate(YYs) :-~n'),
-    format('    findall([Y2,Y2],~n'),
-    format('        (findall(Y1,(colour(Y),Y1=c-Y),Ys),~n'),
-    format('         member(Y2,Ys)),~n'),
-    format('        YYs).~n~n'),
+    format('Input:~n', []),
+    format('predicate(YYs) :-~n', []),
+    format('    findall([Y2,Y2],~n', []),
+    format('        (findall(Y1,(colour(Y),Y1=c-Y),Ys),~n', []),
+    format('         member(Y2,Ys)),~n', []),
+    format('        YYs).~n~n', []),
     translate(Input, Output),
     format('Output:~n~w~n', [Output]),
-    format('✓ Test 3 completed~n').
+    format('✓ Test 3 completed~n', []).
 
 run_tests :-
-    format('~n================================================~n'),
-    format('  Findall to Predicates Translator~n'),
-    format('================================================~n'),
+    format('~n================================================~n', []),
+    format('  Findall to Predicates Translator~n', []),
+    format('================================================~n', []),
     catch(test_simple, E, format('Test 1 error: ~w~n', [E])),
     catch(test_with_transform, E, format('Test 2 error: ~w~n', [E])),
     catch(test_nested, E, format('Test 3 error: ~w~n', [E])),
-    format('~n================================================~n'),
-    format('  All Tests Completed!~n'),
-    format('================================================~n~n').
+    format('~n================================================~n', []),
+    format('  All Tests Completed!~n', []),
+    format('================================================~n~n', []).
 
 % Entry point
 :- initialization(run_tests, main).
