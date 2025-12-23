@@ -1,0 +1,80 @@
+Lucians-MacBook-Air-2025:loop lg3$ swipl -g run_tests -t halt translator_starlog_prolog.pl
+Warning: /Users/lg3/Dropbox/GitHub/loop/translator_starlog_prolog.pl:14:
+Warning:    Singleton variables: [C]
+Warning: /Users/lg3/Dropbox/GitHub/loop/translator_starlog_prolog.pl:17:
+Warning:    Singleton variables: [D,E,F,G,H]
+Warning: /Users/lg3/Dropbox/GitHub/loop/translator_starlog_prolog.pl:17:
+Warning:    Singleton variable in branch: D
+Warning:    Singleton variable in branch: E
+Warning:    Singleton variable in branch: F
+Warning:    Singleton variable in branch: G
+Warning:    Singleton variable in branch: H
+Warning: /Users/lg3/Dropbox/GitHub/loop/translator_starlog_prolog.pl:18:
+Warning:    Singleton variables: [A,B]
+Warning: /Users/lg3/Dropbox/GitHub/loop/translator_starlog_prolog.pl:19:
+Warning:    Singleton variables: [A,B]
+Warning: /Users/lg3/Dropbox/GitHub/loop/translator_starlog_prolog.pl:20:
+Warning:    Singleton variables: [A,B]
+Warning: /Users/lg3/Dropbox/GitHub/loop/translator_starlog_prolog.pl:21:
+Warning:    Singleton variables: [A,B]
+Warning: /Users/lg3/Dropbox/GitHub/loop/translator_starlog_prolog.pl:22:
+Warning:    Singleton variables: [A,B]
+Warning: /Users/lg3/Dropbox/GitHub/loop/translator_starlog_prolog.pl:23:
+Warning:    Singleton variables: [A,B]
+Warning: /Users/lg3/Dropbox/GitHub/loop/translator_starlog_prolog.pl:24:
+Warning:    Singleton variables: [A,B]
+Warning: /Users/lg3/Dropbox/GitHub/loop/translator_starlog_prolog.pl:25:
+Warning:    Singleton variables: [A,B]
+Warning: /Users/lg3/Dropbox/GitHub/loop/translator_starlog_prolog.pl:26:
+Warning:    Singleton variables: [A,B]
+Warning: /Users/lg3/Dropbox/GitHub/loop/translator_starlog_prolog.pl:27:
+Warning:    Singleton variables: [C]
+ERROR: /Users/lg3/Dropbox/GitHub/loop/translator_starlog_prolog.pl:29:49: Syntax error: Operator expected
+Warning: /Users/lg3/Dropbox/GitHub/loop/translator_starlog_prolog.pl:30:
+Warning:    Singleton variables: [A,B]
+Warning: /Users/lg3/Dropbox/GitHub/loop/translator_starlog_prolog.pl:31:
+Warning:    Singleton variables: [B,C]
+ERROR: /Users/lg3/Dropbox/GitHub/loop/translator_starlog_prolog.pl:32:195: Syntax error: Operator expected
+Warning: /Users/lg3/Dropbox/GitHub/loop/translator_starlog_prolog.pl:35:
+Warning:    Singleton variables: [B1,C1,D1]
+ERROR: /Users/lg3/Dropbox/GitHub/loop/translator_starlog_prolog.pl:35:
+ERROR:    Full stop in clause-body?  Cannot redefine ,/2
+Warning: /Users/lg3/Dropbox/GitHub/loop/translator_starlog_prolog.pl:36:
+Warning:    Singleton variables: [B1,C1]
+ERROR: /Users/lg3/Dropbox/GitHub/loop/translator_starlog_prolog.pl:36:
+ERROR:    Full stop in clause-body?  Cannot redefine ,/2
+Warning: /Users/lg3/Dropbox/GitHub/loop/translator_starlog_prolog.pl:37:
+Warning:    Singleton variables: [B,C]
+ERROR: /Users/lg3/Dropbox/GitHub/loop/translator_starlog_prolog.pl:38:72: Syntax error: Operator expected
+Warning: /Users/lg3/Dropbox/GitHub/loop/translator_starlog_prolog.pl:39:
+Warning:    Singleton variables: [B1,C1]
+ERROR: /Users/lg3/Dropbox/GitHub/loop/translator_starlog_prolog.pl:39:
+ERROR:    Full stop in clause-body?  Cannot redefine ,/2
+ERROR: /Users/lg3/Dropbox/GitHub/loop/translator_starlog_prolog.pl:40:61: Syntax error: Operator expected
+ERROR: /Users/lg3/Dropbox/GitHub/loop/translator_starlog_prolog.pl:42:74: Syntax error: Operator expected
+ERROR: /Users/lg3/Dropbox/GitHub/loop/translator_starlog_prolog.pl:44:71: Syntax error: Operator expected
+ERROR: /Users/lg3/Dropbox/GitHub/loop/translator_starlog_prolog.pl:45:63: Syntax error: Operator expected
+ERROR: /Users/lg3/Dropbox/GitHub/loop/translator_starlog_prolog.pl:46:93: Syntax error: Operator expected
+ERROR: /Users/lg3/Dropbox/GitHub/loop/translator_starlog_prolog.pl:47:77: Syntax error: Operator expected
+ERROR: /Users/lg3/Dropbox/GitHub/loop/translator_starlog_prolog.pl:49:45: Syntax error: Operator expected
+Warning: /Users/lg3/Dropbox/GitHub/loop/translator_starlog_prolog.pl:50:
+Warning:    Singleton variables: [R1]
+ERROR: /Users/lg3/Dropbox/GitHub/loop/translator_starlog_prolog.pl:51:38: Syntax error: Operator expected
+ERROR: /Users/lg3/Dropbox/GitHub/loop/translator_starlog_prolog.pl:53:45: Syntax error: Operand expected, unquoted comma or bar found
+ERROR: /Users/lg3/Dropbox/GitHub/loop/translator_starlog_prolog.pl:58:132: Syntax error: Operator expected
+ERROR: /Users/lg3/Dropbox/GitHub/loop/translator_starlog_prolog.pl:59:95: Syntax error: Operator expected
+ERROR: /Users/lg3/Dropbox/GitHub/loop/translator_starlog_prolog.pl:63:208: Syntax error: Operator expected
+ERROR: /Users/lg3/Dropbox/GitHub/loop/translator_starlog_prolog.pl:66:43: Syntax error: Operator expected
+ERROR: /Users/lg3/Dropbox/GitHub/loop/translator_starlog_prolog.pl:67:69: Syntax error: Operand expected, unquoted comma or bar found
+ERROR: /Users/lg3/Dropbox/GitHub/loop/translator_starlog_prolog.pl:68:40: Syntax error: Operator expected
+Warning: /Users/lg3/Dropbox/GitHub/loop/translator_starlog_prolog.pl:69:
+Warning:    Singleton variables: [B1]
+ERROR: /Users/lg3/Dropbox/GitHub/loop/translator_starlog_prolog.pl:69:
+ERROR:    Full stop in clause-body?  Cannot redefine ,/2
+ERROR: /Users/lg3/Dropbox/GitHub/loop/translator_starlog_prolog.pl:71:174: Syntax error: Operator expected
+Warning: /Users/lg3/Dropbox/GitHub/loop/translator_starlog_prolog.pl:72:
+Warning:    Singleton variables: [B1,C1]
+ERROR: /Users/lg3/Dropbox/GitHub/loop/translator_starlog_prolog.pl:72:
+ERROR:    Full stop in clause-body?  Cannot redefine ,/2
+ERROR: /Users/lg3/Dropbox/GitHub/loop/translator_starlog_prolog.pl:73:1: Syntax error: End of file in quoted codes
+% No tests to run

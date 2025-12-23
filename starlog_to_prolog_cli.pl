@@ -1,7 +1,7 @@
 :- module(starlog_to_prolog, [main/0]).
 :- use_module(var_utils).
 :- use_module(library(charsio)).
-:-include('../listprologinterpreter/listprolog.pl').
+%:-include('../listprologinterpreter/listprolog.pl').
 
 :-dynamic new_var_sl2p888/1.
 :-dynamic free_vars_sl2p888/1.
@@ -863,3 +863,13 @@ term_to_atom_protocol(Term,Atom2) :-
 	atom_concat(Atom2,'\n',Atom1),
 	rm("tmp32478.txt").
 
+conjunction_list(C, [C])   :- not(C = (_,_)).
+conjunction_list(C, [P|R]) :- C = (P,Q), conjunction_list(Q, R).
+ 
+square_to_round(A,B) :-
+ conjunction_list(B,A).
+
+string(String) --> list(String).
+
+list([]) --> [].
+list([L|Ls]) --> [L], list(Ls).
