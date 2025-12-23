@@ -182,6 +182,7 @@ cd starlog_files
 swipl -q -g main -s ../prolog_to_starlog_cli.pl
 ```
 
-# Articles
+# Articles and Videos
 
 * [Example Prolog-Starlog conversions](https://lucianacademy.hashnode.dev/prolog-starlog-converter)
+* [Youtube video](https://youtu.be/kdtI8VsE--4)
