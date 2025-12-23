@@ -461,16 +461,16 @@ write_clauses(Stream, [Clause|Clauses]) :-
         %with_output_to(string(S),write_term(S2, [variable_names(VNs),quoted(true), numbervars(true)])), 
         %term_to_atom(S1,S),
         term_to_atom(Head,S),
-        writeln(Head),
-        write(Stream,S),
+        term_to_atom_protocol(Head,S1),
+        write(Stream,S1),
         write(Stream, '.\n')
     ; Clause = ((Head :- Body),VNs) ->
     %with_output_to(atom(S2),write_term((Head :- Body), [variable_names(VNs),quoted(true), numbervars(true)])), 
         %with_output_to(string(S),write_term(S2, [variable_names(VNs),quoted(true), numbervars(true)])),
         %term_to_atom(S1,S),
         term_to_atom((Head :- Body),S),
-        writeln((Head :- Body)),
-        write(Stream,S),
+        term_to_atom_protocol((Head :- Body),S1),
+        write(Stream,S1),
 
 write(Stream, '.\n')
     ;       %with_output_to(atom(S2),write_term(Clause, [variable_names(VNs),quoted(true), numbervars(true)])), 
@@ -478,8 +478,8 @@ write(Stream, '.\n')
     %with_output_to(string(S),write_term(S2, [variable_names([]),quoted(true), numbervars(true)])),
         %term_to_atom(S1,S),
         term_to_atom(Clause,S),
-        writeln(Clause),
-        write(Stream,S),
+        term_to_atom_protocol(Clause,S1),
+        write(Stream,S1),
      	write(Stream, '.\n')
     ),
     write_clauses(Stream, Clauses).
@@ -847,3 +847,19 @@ transform_term(Term, Term) :- Term = [], !.
 % Helper to check character type (SWI-Prolog specific)
 % Assumes default character encoding
 %:- use_module(library(ctype)).
+
+open_file_s_s(File1,String) :-
+
+   atom_string(File2, File1),
+   phrase_from_file(string(Codes), File2),
+   string_codes(String, Codes),!.
+
+term_to_atom_protocol(Term,Atom2) :-
+	protocol('tmp32478.txt'),
+	writeln(Term),
+	noprotocol,
+	open_file_s_s("tmp32478.txt",String),
+	atom_string(String,Atom1),
+	atom_concat(Atom2,'\n',Atom1),
+	rm("tmp32478.txt").
+
