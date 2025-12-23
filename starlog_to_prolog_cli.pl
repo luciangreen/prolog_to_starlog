@@ -473,15 +473,10 @@ write_clauses(Stream, [Clause|Clauses]) :-
         write(Stream,S1),
 
 write(Stream, '.\n')
-    ;   Clause = (FactOrRule, VNs) ->
+    ;   Clause = (FactOrRule, _VNs) ->
         % Handle facts and other clauses - extract just the clause part
-        (   FactOrRule = (_ :- _) ->
-            term_to_atom(FactOrRule,S),
-            term_to_atom_protocol(FactOrRule,S1)
-        ;   % It's a fact
-            term_to_atom(FactOrRule,S),
-            term_to_atom_protocol(FactOrRule,S1)
-        ),
+        term_to_atom(FactOrRule,S),
+        term_to_atom_protocol(FactOrRule,S1),
         write(Stream,S1),
      	write(Stream, '.\n')
     ;   % Fallback for clauses without VNs (shouldn't happen)
