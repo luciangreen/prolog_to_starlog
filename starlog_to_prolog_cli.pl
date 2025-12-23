@@ -20,9 +20,9 @@ main :-
 
 convert_all_starlog_to_prolog :-
     working_directory(CWD, CWD),
-    format('~n=== Starlog to Prolog Converter ===~n'),
-    format('Date/Time: 2025-07-02 00:25:18 UTC~n'),
-    format('User: luciangreenPlease~n'),
+    format('~n=== Starlog to Prolog Converter ===~n', []),
+    format('Date/Time: 2025-07-02 00:25:18 UTC~n', []),
+    format('User: luciangreenPlease~n', []),
     format('Working in directory: ~w~n', [CWD]),
     
     % Look for Starlog files in the current directory
@@ -30,12 +30,12 @@ convert_all_starlog_to_prolog :-
     exclude(hidden_or_special, AllFiles, Files),
     include(is_starlog_file, Files, StarlogFiles),
     ( StarlogFiles = [] ->
-        format('No _starlog.pl files found for conversion~n')
+        format('No _starlog.pl files found for conversion~n', [])
     ; length(StarlogFiles, NumFiles),
       format('Found ~w Starlog files to process: ~w~n', [NumFiles, StarlogFiles]),
       process_starlog_files(StarlogFiles)
     ),
-    format('~n=== Starlog to Prolog Conversion Complete ===~n').
+    format('~n=== Starlog to Prolog Conversion Complete ===~n', []).
 
 
 hidden_or_special(File) :- sub_atom(File, 0, 1, _, '.').
