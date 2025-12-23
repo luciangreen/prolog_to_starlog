@@ -473,10 +473,18 @@ write_clauses(Stream, [Clause|Clauses]) :-
         write(Stream,S1),
 
 write(Stream, '.\n')
-    ;       %with_output_to(atom(S2),write_term(Clause, [variable_names(VNs),quoted(true), numbervars(true)])), 
-
-    %with_output_to(string(S),write_term(S2, [variable_names([]),quoted(true), numbervars(true)])),
-        %term_to_atom(S1,S),
+    ;   Clause = (FactOrRule, VNs) ->
+        % Handle facts and other clauses - extract just the clause part
+        (   FactOrRule = (_ :- _) ->
+            term_to_atom(FactOrRule,S),
+            term_to_atom_protocol(FactOrRule,S1)
+        ;   % It's a fact
+            term_to_atom(FactOrRule,S),
+            term_to_atom_protocol(FactOrRule,S1)
+        ),
+        write(Stream,S1),
+     	write(Stream, '.\n')
+    ;   % Fallback for clauses without VNs (shouldn't happen)
         term_to_atom(Clause,S),
         term_to_atom_protocol(Clause,S1),
         write(Stream,S1),
@@ -856,7 +864,8 @@ open_file_s_s(File1,String) :-
 
 term_to_atom_protocol(Term,Atom2) :-
 	protocol('tmp32478.txt'),
-	writeln(Term),
+	write_term(Term, [quoted(true), numbervars(true)]),
+	nl,
 	noprotocol,
 	open_file_s_s("tmp32478.txt",String),
 	atom_string(String,Atom1),

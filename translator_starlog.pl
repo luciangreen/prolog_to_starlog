@@ -45,7 +45,7 @@ generate_recursive_clause(A,B,none,C,D):-compound(B),\+is_list(B)->B=..[E|F],for
 generate_outer_recursive_clause(A,B,C):-format_template(B,D),format(atom(C),'~w([X|Xs],[~w|Ys]) :- ~w(Xs,Ys).',[A,D,A]).
 format_template([A,B],C):-A==B,!,C='[X,X]'.
 format_template([A|B],C):-!,format(atom(C),'[~w|~w]',[A,B]).
-format_template(A,B):-var(A),!,B='X'.
+format_template(A,B):-var(A),!,B='_'.
 format_template(A,B):-format(atom(B),'~w',[A]).
 capitalize_atom(A,B):-[C|D]is atom_chars(A),upcase_atom(C,E),[E|D]is atom_chars(B).
 format_output(A,B,C,D):-atomics_to_string([A,'',B,''],'\n',E),atomics_to_string(C,'\n',F),format(atom(D),'~w~w',[E,F]).
@@ -59,7 +59,7 @@ format_args(A,B):-C is maplist(format_single_arg,A),atomics_to_string(C,', ',B).
 format_single_arg(A,B):-format(atom(B),'~w',[A]).
 generate_all_chains([],A,[]).
 generate_all_chains([A|B],C,D):-count_levels(A,E),generate_chain_for_structure(A,C,E,F),G is C+E,generate_all_chains(B,G,H),D is &(F,H).
-generate_chain_for_structure(A,B,C,D):-get_base_predicate_name(A,E),(E=none->F='Var';atom_concat(E,s,G),capitalize_atom(G,F)),H is B+C,K is findall(I,(between(B,H,J),format(atom(I),'~w~d',[F,J]))),K=[L|M],generate_chain_calls_v2(M,B,L,D).
+generate_chain_for_structure(A,B,C,D):-get_base_predicate_name(A,E),(E=none->F='Y1';atom_concat(E,s,G),capitalize_atom(G,F)),H is B+C,K is findall(I,(between(B,H,J),format(atom(I),'~w~d',[F,J]))),K=[L|M],generate_chain_calls_v2(M,B,L,D).
 generate_chain_calls_v2([],A,B,[]).
 generate_chain_calls_v2([A|B],C,D,[E|F]):-format(atom(G),'findall~|~`0t~d~3+',[C]),format(atom(E),'    ~w(~w, ~w)',[G,D,A]),H is C+1,generate_chain_calls_v2(B,H,A,F).
 generate_all_helper_predicates([],A,[]).
