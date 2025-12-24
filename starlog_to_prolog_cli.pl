@@ -8,7 +8,7 @@
 
 % Define operators for Starlog syntax
 :- op(700, xfx, is).
-:- op(600, xfx, ':').
+:- op(600, yfx, ':').
 :- op(500, xfx, '&').
 :- op(500, xfx, '•').
 
@@ -134,7 +134,9 @@ starlog_to_pl_with_decompression(((Head :- Body),VNs),
     %round_to_square
     ([Body]=Body1),
     decompress_goal(Body1, VNs,PBody),
-    PBody=[PBody1,_],!.
+    PBody=[PBodyConj|_],
+    flatten_conjunction(PBodyConj, PBodyList),
+    rebuild_conjunction(PBodyList, PBody1),!.
     %append(PBody1,[_],PBody),
     %round_to_square(PBody2,PBody1),!.%term_to_atom(PBody,PBody1).
 starlog_to_pl_with_decompression(Fact, Fact).
@@ -788,7 +790,7 @@ replace_var_terms(TermIn, TermOut) :-
 
 % transform_list(+OldList, -NewList).
 % Traverses OldList, replacing all atoms starting with a capital letter with unique variables in NewList.
-transform_list([], []).
+transform_list([], []) :- !.
 transform_list([H|T], [H_new|T_new]) :-
     transform_term(H, H_new),
     transform_list(T, T_new).
@@ -836,6 +838,9 @@ transform_term(Term, V_name) :-
 
 transform_term(Term, Term) :-
     atom(Term), !. % Lowercase atoms are kept as is
+
+transform_term(Term, Term) :-
+    string(Term), !. % Strings are kept as is
 
 transform_term(Term, Term) :-
     number(Term), !. % Numbers are kept as is
