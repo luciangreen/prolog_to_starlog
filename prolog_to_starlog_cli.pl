@@ -1,5 +1,6 @@
 :- module(prolog_to_starlog_cli, [main/0]).
 :- use_module(var_utils).
+:- include('../listprologinterpreter/listprolog.pl').
 
 % Define operators for Starlog syntax
 :- op(700, xfx, is).
@@ -13,9 +14,9 @@ main :-
 
 convert_all_prolog_to_starlog :-
     working_directory(CWD, CWD),
-    format('~n=== Prolog to Starlog Converter ===~n'),
-    format('Date/Time: 2025-07-02 00:25:18 UTC~n'),
-    format('User: luciangreenPlease~n'),
+    format('~n=== Prolog to Starlog Converter ===~n', []),
+    format('Date/Time: 2025-07-02 00:25:18 UTC~n', []),
+    format('User: luciangreenPlease~n', []),
     format('Working in directory: ~w~n', [CWD]),
     
     % Look for files in the current directory
@@ -25,7 +26,7 @@ convert_all_prolog_to_starlog :-
     length(PrologFiles, NumFiles),
     format('Found ~w Prolog files to process: ~w~n', [NumFiles, PrologFiles]),
     process_prolog_files(PrologFiles),
-    format('~n=== Prolog to Starlog Conversion Complete ===~n').
+    format('~n=== Prolog to Starlog Conversion Complete ===~n', []).
 
 hidden_or_special(File) :- sub_atom(File, 0, 1, _, '.').
 hidden_or_special('..').
@@ -176,6 +177,7 @@ is_compressible_builtin(intersection(_, _, Output), Output).
 is_compressible_builtin(read_string(_, _, _, _, Output), Output).
 is_compressible_builtin(atom_string(_, Output), Output).
 is_compressible_builtin(call(Output), Output).
+is_compressible_builtin(..=(_, Output), Output).
 
 % Select a goal that uses the given variable and remove it from the list
 select_goal_using_var([Goal|Goals], Var, Goal, Goals) :-

@@ -1,7 +1,7 @@
 :- module(starlog_to_prolog, [main/0]).
 :- use_module(var_utils).
 :- use_module(library(charsio)).
-%:-include('../listprologinterpreter/listprolog.pl').
+:-include('../listprologinterpreter/listprolog.pl').
 
 :-dynamic new_var_sl2p888/1.
 :-dynamic free_vars_sl2p888/1.
@@ -20,9 +20,9 @@ main :-
 
 convert_all_starlog_to_prolog :-
     working_directory(CWD, CWD),
-    format('~n=== Starlog to Prolog Converter ===~n'),
-    format('Date/Time: 2025-07-02 00:25:18 UTC~n'),
-    format('User: luciangreenPlease~n'),
+    format('~n=== Starlog to Prolog Converter ===~n', []),
+    format('Date/Time: 2025-07-02 00:25:18 UTC~n', []),
+    format('User: luciangreenPlease~n', []),
     format('Working in directory: ~w~n', [CWD]),
     
     % Look for Starlog files in the current directory
@@ -30,12 +30,12 @@ convert_all_starlog_to_prolog :-
     exclude(hidden_or_special, AllFiles, Files),
     include(is_starlog_file, Files, StarlogFiles),
     ( StarlogFiles = [] ->
-        format('No _starlog.pl files found for conversion~n')
+        format('No _starlog.pl files found for conversion~n', [])
     ; length(StarlogFiles, NumFiles),
       format('Found ~w Starlog files to process: ~w~n', [NumFiles, StarlogFiles]),
       process_starlog_files(StarlogFiles)
     ),
-    format('~n=== Starlog to Prolog Conversion Complete ===~n').
+    format('~n=== Starlog to Prolog Conversion Complete ===~n', []).
 
 
 hidden_or_special(File) :- sub_atom(File, 0, 1, _, '.').
@@ -190,6 +190,7 @@ is_simple_starlog_builtin((_ is sort(_))).
 is_simple_starlog_builtin((_ is intersection(_,_))).
 is_simple_starlog_builtin((_ is read_string(_,_,_,_))).
 is_simple_starlog_builtin((_ is atom_string(_))).
+is_simple_starlog_builtin((_ is ..=(_))).
 
 
 % Check if this is a standard Prolog goal that shouldn't be decomposed
@@ -222,6 +223,7 @@ is_standard_prolog_goal(_ == _).
 is_standard_prolog_goal(_ \== _).
 is_standard_prolog_goal(_ =:= _).
 is_standard_prolog_goal(_ =\= _).
+is_standard_prolog_goal(_ ..= _).
 
 
 % Decompose arguments, extracting nested expressions into separate goals
@@ -473,10 +475,13 @@ write_clauses(Stream, [Clause|Clauses]) :-
         write(Stream,S1),
 
 write(Stream, '.\n')
-    ;       %with_output_to(atom(S2),write_term(Clause, [variable_names(VNs),quoted(true), numbervars(true)])), 
-
-    %with_output_to(string(S),write_term(S2, [variable_names([]),quoted(true), numbervars(true)])),
-        %term_to_atom(S1,S),
+    ;   Clause = (FactOrRule, _VNs) ->
+        % Handle facts and other clauses - extract just the clause part
+        term_to_atom(FactOrRule,S),
+        term_to_atom_protocol(FactOrRule,S1),
+        write(Stream,S1),
+     	write(Stream, '.\n')
+    ;   % Fallback for clauses without VNs (shouldn't happen)
         term_to_atom(Clause,S),
         term_to_atom_protocol(Clause,S1),
         write(Stream,S1),
@@ -856,13 +861,15 @@ open_file_s_s(File1,String) :-
 
 term_to_atom_protocol(Term,Atom2) :-
 	protocol('tmp32478.txt'),
-	writeln(Term),
+	write_term(Term, [quoted(true), numbervars(true)]),
+	nl,
 	noprotocol,
 	open_file_s_s("tmp32478.txt",String),
 	atom_string(String,Atom1),
 	atom_concat(Atom2,'\n',Atom1),
 	rm("tmp32478.txt").
 
+/*
 conjunction_list(C, [C])   :- not(C = (_,_)).
 conjunction_list(C, [P|R]) :- C = (P,Q), conjunction_list(Q, R).
  
@@ -873,3 +880,4 @@ string(String) --> list(String).
 
 list([]) --> [].
 list([L|Ls]) --> [L], list(Ls).
+*/
