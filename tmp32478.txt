@@ -1,1 +1,0 @@
-hi(A,B,C,D,E):-F is ("Hi, ":A),G is (F:", are you getting ready for "),H is (G:B),I is (H:C),J is (I:D),K is (J:"="),L is (K:number_to_string(..=([C,B,D]))),E is (L:".")
