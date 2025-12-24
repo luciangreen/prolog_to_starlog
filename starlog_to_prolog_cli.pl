@@ -131,33 +131,38 @@ starlog_to_pl_with_decompression(((Head :- Body),VNs),
 ) :- 
     %!, 
     %trace,
-    %round_to_square
-    ([Body]=Body1),
-    decompress_goal(Body1, VNs,PBody),
-    PBody=[PBodyConj|_],
-    flatten_conjunction(PBodyConj, PBodyList),
-    rebuild_conjunction(PBodyList, PBody1),!.
+    % First flatten the body conjunction into a list of goals
+    flatten_conjunction(Body, BodyList),
+    % Then decompress each goal
+    decompress_goal(BodyList, VNs,PBody),
+    % PBody is now a flat list of goals, rebuild as conjunction
+    rebuild_conjunction(PBody, PBody1),!.
     %append(PBody1,[_],PBody),
     %round_to_square(PBody2,PBody1),!.%term_to_atom(PBody,PBody1).
 starlog_to_pl_with_decompression(Fact, Fact).
 
 
 % Decompress a single goal, potentially expanding nested expressions
-decompress_goal([], _VNs, _) :- !.
-decompress_goal([Goal|Goals], VNs, [Goal2|Goals1]) :-
-%trace,
+decompress_goal([], _VNs, []) :- !.
+decompress_goal([Goal|Goals], VNs, FinalGoals) :-
     % Handle conjunctions by processing each goal separately
     (  
         decompress_goal(Goal, VNs, Goal2)
     ->
-        %rebuild_conjunction([Goals1a, Goals1b], Goals1),
-        format('  Decompressed nested goal: ~w~n', [Goal2])
+        format('  Decompressed nested goal (recursive): ~w~n', [Goal2]),
+        decompress_goal(Goals, VNs, Goals1),
+        append([Goal2], Goals1, FinalGoals)
     ; pretty_goal_list(Goal, VNs, _Goals, Goal2) ->
-        format('  Decompressed nested goal: ~w~n', [Goal2])
+        format('  Decompressed nested goal (pretty_goal_list): ~w~n', [Goal2]),
+        % Flatten the conjunction returned by pretty_goal_list
+        flatten_conjunction(Goal2, Goal2List),
+        decompress_goal(Goals, VNs, Goals1),
+        append(Goal2List, Goals1, FinalGoals)
     ; % If pretty_goal_list fails, convert using starlog_goal_to_pl
-        starlog_goal_to_pl(Goal, Goal2)
-    ),
-    decompress_goal(Goals, VNs, Goals1).
+        starlog_goal_to_pl(Goal, Goal2),
+        decompress_goal(Goals, VNs, Goals1),
+        FinalGoals = [Goal2|Goals1]
+    ).
 
 
 % Check if this is a simple Starlog built-in that shouldn't be decomposed
@@ -167,6 +172,7 @@ is_simple_starlog_builtin((_ is (_ • _))).
 is_simple_starlog_builtin((_ is string_length(_))).
 is_simple_starlog_builtin((_ is atom_length(_))).
 is_simple_starlog_builtin((_ is number_string(_))).
+is_simple_starlog_builtin((_ is number_to_string(_))).
 is_simple_starlog_builtin((_ is string_chars(_))).
 is_simple_starlog_builtin((_ is atom_chars(_))).
 is_simple_starlog_builtin((_ is sub_string(_,_,_,_))).
@@ -275,6 +281,7 @@ is_list_structure(Term) :-
 is_simple_starlog_operation(string_length(_)).
 is_simple_starlog_operation(atom_length(_)).
 is_simple_starlog_operation(number_string(_)).
+is_simple_starlog_operation(number_to_string(_)).
 is_simple_starlog_operation(string_chars(_)).
 is_simple_starlog_operation(atom_chars(_)).
 is_simple_starlog_operation(sub_string(_,_,_,_)).
@@ -299,6 +306,7 @@ is_simple_starlog_operation(sort(_)).
 is_simple_starlog_operation(intersection(_,_)).
 is_simple_starlog_operation(read_string(_,_,_,_)).
 is_simple_starlog_operation(atom_string(_)).
+is_simple_starlog_operation(..=(_)).
 
 
 % Simple compounds that don't need decomposition
@@ -384,11 +392,13 @@ starlog_goal_to_pl(X is (Y & Z), append(Y, Z, X)) :- !.
 starlog_goal_to_pl(X is (Y • Z), atom_concat(Y, Z, X)) :- !.
 starlog_goal_to_pl(X is string_length(Y), string_length(Y, X)) :- !.
 starlog_goal_to_pl(X is number_string(Y), number_string(Y, X)) :- !.
+starlog_goal_to_pl(X is number_to_string(Y), number_string(Y, X)) :- !.
 starlog_goal_to_pl(X is atom_length(Y), atom_length(Y, X)) :- !.
 starlog_goal_to_pl(X is sub_string(A,B,C,D), sub_string(A,B,C,D,X)) :- !.
 starlog_goal_to_pl(X is string_chars(Y), string_chars(Y, X)) :- !.
 starlog_goal_to_pl(X is atom_chars(Y), atom_chars(Y, X)) :- !.
 starlog_goal_to_pl(X is atom_string(Y), atom_string(Y, X)) :- !.
+starlog_goal_to_pl(X is ..=(Y), ..=(Y, X)) :- !.
 
 
 % List operations
@@ -658,18 +668,15 @@ compile_expr(Expr, Out, Goals) :-
 */
 
 compile_expr(Expr, Out, Goals) :-
-    %( Expr = (L : R) ; Expr =.. [':', L, R] ),
-    %trace,
+    compound(Expr),
     Expr =.. [F|Args],
+    is_value_builtin(F, Arity),
+    length(Args, Arity),
     !,
-    %compile_value(L, LV, GL),
-    %compile_value(R, RV, GR),
     compile_values(Args, Vals, Gs),
-    %append(GL, GR, G0),
-    append(Gs, [Goal], Goals),
     append(Vals, [Out], ValsWithOut),
     Goal =.. [F|ValsWithOut],
-    append(G0, [Goal], Goals).
+    append(Gs, [Goal], Goals).
 
 /*
 x:
@@ -741,6 +748,8 @@ is_value_builtin(atom_length, 1).
 is_value_builtin(string_chars, 1).
 is_value_builtin(atom_chars, 1).
 is_value_builtin(string_to_number, 1).
+is_value_builtin(number_to_string, 1).
+is_value_builtin(number_string, 1).
 is_value_builtin(random, 1).
 is_value_builtin(sort, 1).
 is_value_builtin(reverse, 1).
@@ -751,6 +760,7 @@ is_value_builtin(delete, 2).
 is_value_builtin(wrap, 1).
 is_value_builtin(unwrap, 1).
 is_value_builtin(maplist, 2).
+is_value_builtin(..=, 1).
 
 
 % Arithmetic
@@ -874,7 +884,6 @@ term_to_atom_protocol(Term,Atom2) :-
 	atom_concat(Atom2,'\n',Atom1),
 	rm("tmp32478.txt").
 
-/*
 conjunction_list(C, [C])   :- not(C = (_,_)).
 conjunction_list(C, [P|R]) :- C = (P,Q), conjunction_list(Q, R).
  
@@ -885,4 +894,3 @@ string(String) --> list(String).
 
 list([]) --> [].
 list([L|Ls]) --> [L], list(Ls).
-*/
