@@ -1,7 +1,8 @@
 :- module(starlog_to_prolog, [main/0]).
 :- use_module(var_utils).
 :- use_module(library(charsio)).
-:-include('../listprologinterpreter/listprolog.pl').
+%:-include('../listprologinterpreter/listprolog.pl').
+:-include('../listprologinterpreter/listprolog_minimal.pl').
 
 :-dynamic new_var_sl2p888/1.
 :-dynamic free_vars_sl2p888/1.
