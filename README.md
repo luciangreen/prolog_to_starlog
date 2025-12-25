@@ -188,5 +188,4 @@ swipl -q -g main -s ../prolog_to_starlog_cli.pl
 
 # Articles and Videos
 
-* [Example Prolog-Starlog conversions](https://lucianacademy.hashnode.dev/prolog-starlog-converter)
-* [Youtube video](https://youtu.be/kdtI8VsE--4)
+* [Starlog in Prolog](https://github.com/luciangreen/Starlog)
